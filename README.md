@@ -4,6 +4,10 @@ This extension enhances the NYS Leave and Accrual Tracking System (LATS) timeshe
 
 ## Installation
 
+Visit the Chrome Web Store to install the extension: [LATS Go!](https://chromewebstore.google.com/detail/lats-go-%F0%9F%8E%89/obdmohilnmnjkdjgkbcjfaifiilikhip?hl=en&authuser=0)
+
+Alternatively, you can install it manually:
+
 1. Clone or download this repository.
 2. Open Chrome and go to `chrome://extensions/`.
 3. Enable "Developer mode" (top right).
