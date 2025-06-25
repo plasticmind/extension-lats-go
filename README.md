@@ -1,4 +1,4 @@
-# LATS Enhancer Chrome Extension
+# LATS Go! 🎉 Chrome Extension
 
 This extension enhances the NY State Leave and Accrual Tracking System (LATS) timesheet system by providing additional functionality, such as automated timecard filling, custom schedule settings, and error handling.
 
