@@ -1,0 +1,66 @@
+/* LATS GO Button */
+.lats-go-button {
+  display: inline-block;
+  padding: var(--nys-space-100) var(--nys-space-200);
+  font-size: 16px;
+  font-weight: var(--nys-font-weight-bold);
+  text-decoration: none;
+  color: white !important;
+  border-radius: var(--nys-radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--nys-color-theme) 0%,
+    var(--nys-color-success) 50%,
+    var(--nys-color-info) 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: gradientShift 5s linear infinite, celebrateHue 3s linear infinite;
+  transition: transform 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.lats-go-button:hover {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-decoration: none !important;
+  color: white !important;
+  animation: gradientShift 2.5s linear infinite, celebrateHue 1.5s linear infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes celebrateHue {
+  0% {
+    filter: hue-rotate(0deg) brightness(1);
+  }
+  50% {
+    filter: hue-rotate(180deg) brightness(1.2);
+  }
+  100% {
+    filter: hue-rotate(360deg) brightness(1);
+  }
+}
+
+/* Ensure styles override any existing link styles */
+#lnkMyTimesheet.lats-go-button {
+  display: inline-block !important;
+  margin: 1rem !important;
+  padding: 0.75rem 1.5rem !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  text-decoration: none !important;
+  color: white !important;
+} 

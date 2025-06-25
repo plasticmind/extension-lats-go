@@ -1,0 +1,65 @@
+/* Error page styles */
+.lats-reboot-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background-color: var(--theme-color, #154973);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  z-index: 9999;
+}
+
+.lats-reboot-button:hover {
+  background-color: var(--nys-blue-800, #103756);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.lats-reboot-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.lats-reboot-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Animation for the reload icon */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lats-reboot-button:not(:disabled) span {
+  display: inline-block;
+  animation: spin 2s linear infinite;
+}
+
+.lats-enhancer-button.fix-session {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background-color: var(--nys-color-danger);
+  color: var(--nys-color-text-reverse);
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--nys-radius-md);
+  cursor: pointer;
+  font-size: var(--nys-font-size-sm);
+  transition: background-color 0.2s;
+}
+
+.lats-enhancer-button.fix-session:hover {
+  background-color: var(--nys-color-red-600);
+} 

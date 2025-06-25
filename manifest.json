@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "LATS GO! 🎉",
+  "version": "1.0.0",
+  "description": "Makes the NY State LATS interface a bit better with improved styling and time entry.",
+  "permissions": [
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "*://*.lats.ny.gov/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*.lats.ny.gov/Default*"],
+      "css": [
+        "styles/nysds-tokens.css",
+        "styles/default.css"
+      ],
+      "js": ["scripts/default.js"]
+    },
+    {
+      "matches": ["*://*.lats.ny.gov/Time*"],
+      "css": [
+        "styles/nysds-tokens.css",
+        "styles/content.css"
+      ],
+      "js": ["scripts/content.js"]
+    },
+    {
+      "matches": ["*://*.lats.ny.gov/error.aspx*"],
+      "js": ["scripts/error.js"],
+      "css": [
+        "styles/nysds-tokens.css",
+        "styles/error.css"
+      ]
+    }
+  ],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "32": "images/icon32.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "options_page": "options.html"
+} 

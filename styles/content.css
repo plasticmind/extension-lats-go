@@ -1,0 +1,612 @@
+/* Base Styles */
+body {
+  background: var(--nys-color-surface) !important;
+  padding-top: 0 !important;
+}
+
+/* LATS Page Styles */
+.MissingTimeError:not(.k-header) {
+  background: var(--nys-color-warning-weak) !important;
+  padding: 0 !important;
+  color: var(--nys-color-text) !important;
+  text-align: left !important;
+  font-size: 0 !important;
+}
+
+.MissingTimeError:not(.k-header) > img {
+  display: none !important;
+}
+
+.MissingTimeError:not(.k-header)::after {
+  content: "Use ✨ Fill Timecard to auto-fill...";
+  display: block;
+  font-size: 14px !important;
+  color: var(--nys-color-text) !important;
+  padding: var(--nys-space-100) var(--nys-space-200);
+  text-align: left;
+}
+
+.TdsError:not(.k-header) {
+  background: var(--nys-color-danger-weak) !important;
+  padding: 0 !important;
+  color: var(--nys-color-text) !important;
+  text-align: left !important;
+  font-size: 0 !important;;
+}
+
+.TdsError:not(.k-header) > img {
+  display: none !important;
+}
+
+.TdsError:not(.k-header)::after{
+  content: "Click TDS tab 👆 to assign hours to tasks...";
+  display: block;
+  font-size: 14px !important;
+  color: var(--nys-color-text) !important;
+  padding: var(--nys-space-100) var(--nys-space-200);
+  text-align: left;
+}
+.TdsError.leftColumn {
+  display: none !important;
+}
+
+/* TDS Grid Styles */
+
+.tdsGrid a[id^="lnkSubTask_"] {
+  font-size: 24px !important;
+}
+
+.k-header {
+  background: var(--nys-color-theme-weak) !important;
+  border-radius: 0 !important;
+  color: var(--nys-color-text) !important;
+}
+
+.k-button {
+  color: var(--nys-color-text-reverse) !important;
+  background: var(--nys-color-theme) !important;
+  border: 0 !important;
+  border-radius: var(--nys-radius-md) !important;  
+}
+
+input[value="Print"] {
+  display: none !important;
+}
+
+.k-button:hover {
+  background: var(--nys-color-theme-stronger) !important;
+}
+
+.k-header,
+.k-header input {
+  border: 0 !important;
+}
+
+.k-header img {
+  width: 12px;
+  height: 12px;
+}
+
+.k-grid {
+  border: 0 !important;
+}
+
+.k-widget {
+  border: 0 !important;
+}
+
+.k-grid td {
+  border: 0 !important;
+  font-family: monospace;
+  font-size: var(--nys-font-size-lg) !important;
+}
+
+.TimesheetSubTab {
+  background-color: var(--nys-color-neutral-50) !important;
+  color: var(--nys-color-text) !important;
+}
+
+.nav-tabs {
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.nav-tabs > li > a {
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.nav-tabs > li.active > a {
+  background-color: var(--nys-color-theme) !important;
+  color: var(--nys-color-text-reverse) !important;
+  font-weight: bold;
+}
+
+#timesheetTable {
+  background-color: white !important;
+}
+
+.timesheetCell {
+  text-align: center !important;
+  font-family: monospace !important;
+  border-bottom: solid 1px var(--nys-color-neutral-50) !important;
+  background: white !important;
+}
+
+.timesheetCell > input {
+  text-align: center !important;
+  border: 0 !important;
+  font-size: var(--nys-font-size-lg) !important;
+  color: var(--nys-color-text) !important;
+}
+
+.timesheetCell > input[value="0"] {
+  color: var(--nys-color-neutral-400) !important;
+}
+
+.k-picker-solid {
+  background: var(--nys-color-theme-weak) !important;
+  margin-left: 8px !important;
+}
+
+.k-datepicker {
+  border: 0 !important;
+  width: auto !important;
+  max-width: 100px !important; 
+}
+
+#pickTimesheet button {
+  font-size: var(--nys-font-size-md) !important;
+}
+
+#pickTimesheetDate {
+  font-family: monospace !important;
+  font-size: var(--nys-font-size-md) !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  background: var(--nys-color-accent) !important;
+  color: var(--nys-color-text) !important;
+}
+
+td[id^="totalRow"] {
+  background: white !important;
+  font-size: var(--nys-font-size-xl) !important;
+  color: var(--nys-color-danger) !important;
+}
+
+.footer {
+  position: relative !important;
+  bottom: 0 !important;
+  background-color: transparent !important;
+}
+
+[summary="TDS\\ Data"] {
+  font-family: monospace !important;
+}
+
+[summary="TDS\\ Data"] [style="background-color\\:\\#C6E2EE\\;"] [colspan="\\31 4"] [href="\\#"] {
+  color: var(--nys-color-theme) !important;
+  font-weight: bold;
+  display: block;
+  font-size: 2rem !important;
+  text-decoration: none !important;
+  padding: 0 0 0 !important;
+}
+
+tr[style^="background-color\\:\\#C6E2EE\\;"] {
+  background: var(--nys-color-theme-weak) !important;
+}
+
+tr[style="background-color\\:\\#C6E2EE\\;"] {
+  color: var(--nys-color-theme) !important;
+  font-size: var(--nys-font-size-md);
+  font-weight: normal !important;
+  background: #fff !important;
+}
+
+tr[style="background-color\\:\\#C6E2EE\\;"] td:first-child {
+  padding: 3rem 0 0 0 !important;
+  opacity: 0.5;
+}
+
+.k-textbox {
+  font-family: monospace !important;
+  background: white !important;
+  height: 30px !important;
+}
+
+[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(4),
+[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(5),
+[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(11),
+[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(12) {
+  opacity: 0.2 !important;
+}
+
+[summary="TDS\\ Data"] tr td:nth-child(4) > input,
+[summary="TDS\\ Data"] tr td:nth-child(5) > input,
+[summary="TDS\\ Data"] tr td:nth-child(11) > input,
+[summary="TDS\\ Data"] tr td:nth-child(12) > input {
+  opacity: 0.2;
+}
+
+[id="ctl00_ContentPlaceHolder1_FooterDisplay"] td[align="right"] {
+  font-family: monospace !important;
+  font-size: var(--nys-font-size-xl) !important;
+  color: var(--nys-color-info) !important;
+}
+
+.container #frmUpdateTimesheet .col-xs-12 #btnSubmitTimesheet_1 {
+  border: none !important;
+  background: var(--nys-color-success) !important;
+  margin-left: 2rem !important;
+}
+
+.ltm-UserMenuDropDown {
+  font-variant: normal !important;
+  font-weight: normal !important;
+  font-size: var(--nys-font-size-lg) !important;
+}
+
+.ltm-UserMenuDropDown strong {
+  font-weight: normal !important;
+}
+
+/* Extension UI Styles */
+.lats-modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.lats-modal-content {
+  background: var(--nys-color-surface);
+  color: var(--nys-color-text);
+  border-radius: var(--nys-radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin: 5% auto;
+  padding: var(--nys-space-200);
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.lats-modal-content h2 {
+  color: var(--nys-color-text);
+  font-size: 24px;
+  font-weight: var(--nys-font-weight-bold);
+  margin: 0 0 var(--nys-space-200) 0;
+  text-decoration: none;
+  letter-spacing: var(--nys-font-letterspacing-h2);
+}
+
+/* Settings Styles */
+.settings-info {
+  margin: var(--nys-space-200) 0;
+  background-color: var(--nys-color-info-weak);
+  padding: var(--nys-space-150);
+  border-radius: var(--nys-radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-info-text {
+  font-size: 14px;
+}
+
+.settings-info-link {
+  color: var(--nys-color-link);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.settings-info-link:hover {
+  text-decoration: underline;
+  color: var(--nys-color-link-strongest);
+}
+
+/* Day Selection Grid */
+.days-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--nys-space-100);
+  margin: var(--nys-space-150) 0;
+}
+
+.day-card {
+  border: var(--nys-border-width-sm) solid var(--nys-color-neutral-200);
+  padding: var(--nys-space-150);
+  border-radius: var(--nys-radius-md);
+  background: var(--nys-color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--nys-space-100);
+}
+
+.day-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--nys-space-100);
+}
+
+.day-card-date {
+  color: var(--nys-color-text);
+  font-size: 16px;
+  font-weight: var(--nys-font-weight-bold);
+}
+
+.day-checkbox-label {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--nys-color-text);
+  gap: var(--nys-space-50);
+  font-weight: normal !important;
+  line-height: 1;
+  flex-direction: row-reverse;
+}
+
+.day-checkbox {
+  accent-color: var(--nys-color-theme);
+  margin: 0;
+  position: relative;
+  top: -1px;
+}
+
+.day-type-select {
+  width: 100%;
+  padding: var(--nys-space-50);
+  border: var(--nys-border-width-sm) solid var(--nys-color-neutral-200);
+  border-radius: var(--nys-radius-md);
+  background: var(--nys-color-surface);
+  color: var(--nys-color-text);
+  font-family: var(--nys-font-family-ui);
+  font-size: 16px;
+}
+
+/* Modal Buttons */
+.modal-buttons {
+  display: flex;
+  gap: var(--nys-space-100);
+  justify-content: flex-end;
+  margin-top: var(--nys-space-200);
+}
+
+.modal-buttons button,
+.lats-enhancer-button {
+  padding: var(--nys-space-100) var(--nys-space-200);
+  border-radius: var(--nys-radius-md);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: var(--nys-font-weight-medium);
+  transition: all 0.2s ease;
+}
+
+#applyTimecard {
+  background-color: var(--nys-color-theme);
+  color: var(--nys-color-text-reverse);
+  border: none;
+}
+
+#applyTimecard:hover {
+  background-color: var(--nys-color-theme-strong);
+}
+
+#cancelTimecard {
+  background-color: var(--nys-color-surface) !important;
+  color: var(--nys-color-theme) !important;
+  border: 1px solid var(--nys-color-theme) !important;
+}
+
+#cancelTimecard:hover {
+  background-color: var(--nys-color-surface) !important;
+  color: var(--nys-color-theme-strong) !important;
+  border-color: var(--nys-color-theme-strong) !important;
+}
+
+/* Extension Controls */
+.lats-enhancer-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--nys-space-100);
+  margin-left: var(--nys-space-100);
+}
+
+/* Container that holds both save button and enhancer controls */
+.col-xs-3 {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--nys-space-100);
+}
+
+/* Button Variants */
+#fillTimecard {
+  background-color: var(--nys-color-theme);
+  color: var(--nys-color-text-reverse);
+}
+
+#fillTimecard:hover {
+  background-color: var(--nys-color-theme-strong);
+}
+
+/* Fix Session Button */
+.lats-enhancer-button.fix-session {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background-color: var(--nys-color-danger);
+  color: var(--nys-color-text-reverse);
+}
+
+.lats-enhancer-button.fix-session:hover {
+  background-color: var(--nys-color-red-600);
+}
+
+/* Loading Overlay */
+.lats-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.lats-loading-content {
+  background: var(--nys-color-surface);
+  padding: var(--nys-space-200);
+  border-radius: var(--nys-radius-md);
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  color: var(--nys-color-text);
+}
+
+.loading-text {
+  color: var(--nys-color-text-weak);
+  margin-top: var(--nys-space-50);
+}
+
+.lats-spinner {
+  border: 4px solid var(--nys-color-neutral-100);
+  border-top: 4px solid var(--nys-color-theme);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  animation: lats-spin 1s linear infinite;
+}
+
+/* Notification Styles */
+.lats-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: var(--nys-space-100) var(--nys-space-200);
+  border-radius: var(--nys-radius-md);
+  color: var(--nys-color-text-reverse);
+  font-size: var(--nys-font-size-sm);
+  z-index: 10001;
+  animation: slideIn 0.3s ease-out;
+}
+
+.lats-notification.info {
+  background-color: var(--nys-color-info);
+}
+
+.lats-notification.success {
+  background-color: var(--nys-color-success);
+}
+
+.lats-notification.error {
+  background-color: var(--nys-color-danger);
+}
+
+/* States */
+.current-week td {
+  background-color: var(--nys-color-theme-weak);
+}
+
+#printTSTable input[type="text"].error {
+  border-color: var(--nys-color-danger);
+  background-color: var(--nys-color-red-100);
+}
+
+#printTSTable input[type="text"].saved {
+  border-color: var(--nys-color-success);
+  background-color: var(--nys-color-green-100);
+  transition: all 0.3s ease;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes lats-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#timesheetTable th:nth-child(4),
+#timesheetTable th:nth-child(5),
+#timesheetTable th:nth-child(11),
+#timesheetTable th:nth-child(12),
+#timesheetTable td:nth-child(4),
+#timesheetTable td:nth-child(5),
+#timesheetTable td:nth-child(11),
+#timesheetTable td:nth-child(12) {
+  background: var(--nys-color-neutral-50) !important;
+  color: var(--nys-color-neutral-400) !important;
+  opacity: 0.6 !important;
+}
+
+#timesheetTable td:nth-child(4) input,
+#timesheetTable td:nth-child(5) input,
+#timesheetTable td:nth-child(11) input,
+#timesheetTable td:nth-child(12) input {
+  background: var(--nys-color-neutral-50) !important;
+  border: 0 !important;
+}
+
+button#next,
+button#previous {
+  font-size: 0 !important;
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1 !important;
+  border: 0 !important;
+}
+
+button#next .k-button-text,
+button#previous .k-button-text {
+  display: none !important;
+}
+
+button#next::after,
+button#previous::after {
+  color: var(--nys-color-text-reverse) !important;
+  font-size: 16px !important;
+  font-family: 'Arial', sans-serif !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-align: center !important;
+  line-height: 24px !important;
+  opacity: 1 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+button#next::after {
+  content: '❯' !important;
+}
+
+button#previous::after {
+  content: '❮' !important;
+} 

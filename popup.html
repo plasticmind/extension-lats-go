@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LATS UI Enhancer Settings</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .settings-group {
+      margin-bottom: 20px;
+    }
+    h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .time-input {
+      margin: 5px 0;
+      display: flex;
+      align-items: center;
+    }
+    .time-input label {
+      width: 100px;
+    }
+    input[type="time"] {
+      margin-left: 10px;
+    }
+    .toggle-container {
+      margin: 15px 0;
+    }
+    button {
+      background: #2c5282;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2a4365;
+    }
+    .schedule-toggle {
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>LATS UI Enhancer Settings</h1>
+  
+  <div class="settings-group">
+    <h2>Default Time Settings</h2>
+    <div class="schedule-toggle">
+      <label>
+        <input type="checkbox" id="alternateSchedule"> Use Alternate Biweekly Schedule
+      </label>
+    </div>
+    
+    <div id="week1Settings">
+      <h3>Week 1 Defaults</h3>
+      <div class="time-input">
+        <label>Time In:</label>
+        <input type="time" id="timeIn1" value="08:30">
+      </div>
+      <div class="time-input">
+        <label>Lunch Out:</label>
+        <input type="time" id="lunchOut1" value="12:00">
+      </div>
+      <div class="time-input">
+        <label>Lunch In:</label>
+        <input type="time" id="lunchIn1" value="12:30">
+      </div>
+      <div class="time-input">
+        <label>Time Out:</label>
+        <input type="time" id="timeOut1" value="16:30">
+      </div>
+    </div>
+
+    <div id="week2Settings" style="display: none;">
+      <h3>Week 2 Defaults</h3>
+      <div class="time-input">
+        <label>Time In:</label>
+        <input type="time" id="timeIn2" value="08:30">
+      </div>
+      <div class="time-input">
+        <label>Lunch Out:</label>
+        <input type="time" id="lunchOut2" value="12:00">
+      </div>
+      <div class="time-input">
+        <label>Lunch In:</label>
+        <input type="time" id="lunchIn2" value="12:30">
+      </div>
+      <div class="time-input">
+        <label>Time Out:</label>
+        <input type="time" id="timeOut2" value="16:30">
+      </div>
+    </div>
+  </div>
+
+  <button id="saveSettings">Save Settings</button>
+
+  <script src="scripts/popup.js"></script>
+</body>
+</html> 

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LATS Enhancer Options</title>
+  <link rel="stylesheet" href="styles/nysds-tokens.css">
+  <link rel="stylesheet" href="styles/options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>LATS Enhancer Options</h1>
+    
+    <div id="defaultAlert" class="alert">
+      If you haven't set your preferred hours, the extension will use the default schedule: 
+      8:30 AM (in), 12:00 PM (lunch out), 12:30 PM (lunch in), 4:30 PM (out)
+    </div>
+
+    <div class="schedule-section">
+      <h2>Week 1 Schedule</h2>
+      <div class="time-inputs">
+        <div class="input-group">
+          <label for="timeIn1">Time In:</label>
+          <input type="time" id="timeIn1" />
+        </div>
+        <div class="input-group">
+          <label for="lunchOut1">Lunch Out:</label>
+          <input type="time" id="lunchOut1" />
+        </div>
+        <div class="input-group">
+          <label for="lunchIn1">Lunch In:</label>
+          <input type="time" id="lunchIn1" />
+        </div>
+        <div class="input-group">
+          <label for="timeOut1">Time Out:</label>
+          <input type="time" id="timeOut1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="alternate-schedule">
+      <div class="checkbox-group">
+        <input type="checkbox" id="alternateSchedule" />
+        <label for="alternateSchedule">Use alternate schedule for Week 2</label>
+      </div>
+    </div>
+
+    <div class="schedule-section" id="week2Schedule" style="display: none;">
+      <h2>Week 2 Schedule</h2>
+      <div class="time-inputs">
+        <div class="input-group">
+          <label for="timeIn2">Time In:</label>
+          <input type="time" id="timeIn2" />
+        </div>
+        <div class="input-group">
+          <label for="lunchOut2">Lunch Out:</label>
+          <input type="time" id="lunchOut2" />
+        </div>
+        <div class="input-group">
+          <label for="lunchIn2">Lunch In:</label>
+          <input type="time" id="lunchIn2" />
+        </div>
+        <div class="input-group">
+          <label for="timeOut2">Time Out:</label>
+          <input type="time" id="timeOut2" />
+        </div>
+      </div>
+    </div>
+
+    <button id="save">Save Settings</button>
+    <div id="saveStatus" class="save-status">Settings saved!</div>
+  </div>
+
+  <script src="scripts/options.js"></script>
+</body>
+</html> 
