@@ -1,6 +1,6 @@
 # LATS Go! 🎉 Chrome Extension
 
-This extension enhances the NY State Leave and Accrual Tracking System (LATS) timesheet system by providing additional functionality, such as automated timecard filling, custom schedule settings, and error handling.
+This extension enhances the NYS Leave and Accrual Tracking System (LATS) timesheet system with improved style and functionality, like focuse styles, automated timecard filling, and custom schedule settings.
 
 ## Installation
 
@@ -11,16 +11,10 @@ This extension enhances the NY State Leave and Accrual Tracking System (LATS) ti
 
 ## Usage
 
-- Visit your LATS url (or any page under that domain).
+- Visit the LATS url.
 - Use the "Fill Timecard" button to automatically populate your timesheet based on your default or custom schedule.
 - Edit your schedule settings via the "Edit Schedule Settings" link in the modal.
-- If you get an Application Error when trying to pull up the URL, you can use the "Fix LATS Session" button to clear cookies and reload the page.
-
-## Features
-
-- **Automated Timecard Filling:** Quickly fill in regular or special day types (e.g., vacation, sick, holiday) with predefined schedules.
-- **Custom Schedule Settings:** Configure alternate schedules for different weeks.
-- **Error Handling:** Clear cookies and reload the page to fix session issues.
+- If you get an Application Error when accessing the URL, you can use the "Fix LATS Session" button to clear cookies and reload the page.
 
 ## Technical Details
 
