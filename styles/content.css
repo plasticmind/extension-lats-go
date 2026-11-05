@@ -1,177 +1,46 @@
-/* Base Styles */
+/* ==========================================================================
+   LATS Go! restyle for LATS's timesheet and TDS pages (UI-3, UI-4)
+
+   Matches styles/ui.css: white space, thin dividers, a weekday over a muted date,
+   sans-serif tabular numbers, muted weekends, outlined status labels, and a bold
+   Total column. scripts/lats-restyle.js adds the small DOM hooks used here
+   (.lg-dayhead, .lg-total-col, .lg-task, data-lg-* attributes).
+
+   LATS uses Bootstrap 3 (10px root font size), Kendo UI, and many inline styles,
+   so sizes are px and most rules need !important.
+   ========================================================================== */
+
+:root {
+  --lg-line: var(--nys-color-neutral-100);
+  --lg-line-strong: var(--nys-color-neutral-200);
+  --lg-muted-bg: #f7f7f7;
+  --lg-focus-ring: 0 0 0 2px rgba(0, 76, 151, 0.25);
+}
+
+/* ==========================================================================
+   Page chrome
+   ========================================================================== */
+
 body {
   background: var(--nys-color-surface) !important;
   padding-top: 0 !important;
 }
 
-/* LATS Page Styles */
-.MissingTimeError:not(.k-header) {
-  background: var(--nys-color-warning-weak) !important;
-  padding: 0 !important;
-  color: var(--nys-color-text) !important;
-  text-align: left !important;
-  font-size: 0 !important;
+.tabContent,
+#timesheetNavigation {
+  font-family: var(--nys-font-family-sans) !important;
+  color: var(--nys-color-text);
 }
 
-.MissingTimeError:not(.k-header) > img {
-  display: none !important;
-}
-
-.MissingTimeError:not(.k-header)::after {
-  content: "Use ✨ Fill Timecard to auto-fill...";
-  display: block;
-  font-size: 14px !important;
-  color: var(--nys-color-text) !important;
-  padding: var(--nys-space-100) var(--nys-space-200);
-  text-align: left;
-}
-
-.TdsError:not(.k-header) {
-  background: var(--nys-color-danger-weak) !important;
-  padding: 0 !important;
-  color: var(--nys-color-text) !important;
-  text-align: left !important;
-  font-size: 0 !important;;
-}
-
-.TdsError:not(.k-header) > img {
-  display: none !important;
-}
-
-.TdsError:not(.k-header)::after{
-  content: "Click TDS tab 👆 to assign hours to tasks...";
-  display: block;
-  font-size: 14px !important;
-  color: var(--nys-color-text) !important;
-  padding: var(--nys-space-100) var(--nys-space-200);
-  text-align: left;
-}
-.TdsError.leftColumn {
-  display: none !important;
-}
-
-/* TDS Grid Styles */
-
-.tdsGrid a[id^="lnkSubTask_"] {
-  font-size: 24px !important;
-}
-
-.k-header {
-  background: var(--nys-color-theme-weak) !important;
-  border-radius: 0 !important;
-  color: var(--nys-color-text) !important;
-}
-
-.k-button {
-  color: var(--nys-color-text-reverse) !important;
-  background: var(--nys-color-theme) !important;
+/* LATS draws a border around the tab panel, but its floated content isn't cleared, so the
+   border only boxes the sub-tab bar. */
+.container > .tabContent {
   border: 0 !important;
-  border-radius: var(--nys-radius-md) !important;  
+  box-shadow: none !important;
 }
 
 input[value="Print"] {
   display: none !important;
-}
-
-.k-button:hover {
-  background: var(--nys-color-theme-stronger) !important;
-}
-
-.k-header,
-.k-header input {
-  border: 0 !important;
-}
-
-.k-header img {
-  width: 12px;
-  height: 12px;
-}
-
-.k-grid {
-  border: 0 !important;
-}
-
-.k-widget {
-  border: 0 !important;
-}
-
-.k-grid td {
-  border: 0 !important;
-  font-family: monospace;
-  font-size: var(--nys-font-size-lg) !important;
-}
-
-.TimesheetSubTab {
-  background-color: var(--nys-color-neutral-50) !important;
-  color: var(--nys-color-text) !important;
-}
-
-.nav-tabs {
-  border: 0 !important;
-  border-radius: 0 !important;
-}
-
-.nav-tabs > li > a {
-  border: 0 !important;
-  border-radius: 0 !important;
-}
-
-.nav-tabs > li.active > a {
-  background-color: var(--nys-color-theme) !important;
-  color: var(--nys-color-text-reverse) !important;
-  font-weight: bold;
-}
-
-#timesheetTable {
-  background-color: white !important;
-}
-
-.timesheetCell {
-  text-align: center !important;
-  font-family: monospace !important;
-  border-bottom: solid 1px var(--nys-color-neutral-50) !important;
-  background: white !important;
-}
-
-.timesheetCell > input {
-  text-align: center !important;
-  border: 0 !important;
-  font-size: var(--nys-font-size-lg) !important;
-  color: var(--nys-color-text) !important;
-}
-
-.timesheetCell > input[value="0"] {
-  color: var(--nys-color-neutral-400) !important;
-}
-
-.k-picker-solid {
-  background: var(--nys-color-theme-weak) !important;
-  margin-left: 8px !important;
-}
-
-.k-datepicker {
-  border: 0 !important;
-  width: auto !important;
-  max-width: 100px !important; 
-}
-
-#pickTimesheet button {
-  font-size: var(--nys-font-size-md) !important;
-}
-
-#pickTimesheetDate {
-  font-family: monospace !important;
-  font-size: var(--nys-font-size-md) !important;
-  font-weight: bold !important;
-  text-align: center !important;
-  background: var(--nys-color-accent) !important;
-  color: var(--nys-color-text) !important;
-}
-
-td[id^="totalRow"] {
-  background: white !important;
-  font-size: var(--nys-font-size-xl) !important;
-  color: var(--nys-color-danger) !important;
 }
 
 .footer {
@@ -180,433 +49,1660 @@ td[id^="totalRow"] {
   background-color: transparent !important;
 }
 
-[summary="TDS\\ Data"] {
-  font-family: monospace !important;
-}
-
-[summary="TDS\\ Data"] [style="background-color\\:\\#C6E2EE\\;"] [colspan="\\31 4"] [href="\\#"] {
-  color: var(--nys-color-theme) !important;
-  font-weight: bold;
-  display: block;
-  font-size: 2rem !important;
-  text-decoration: none !important;
-  padding: 0 0 0 !important;
-}
-
-tr[style^="background-color\\:\\#C6E2EE\\;"] {
-  background: var(--nys-color-theme-weak) !important;
-}
-
-tr[style="background-color\\:\\#C6E2EE\\;"] {
-  color: var(--nys-color-theme) !important;
-  font-size: var(--nys-font-size-md);
-  font-weight: normal !important;
-  background: #fff !important;
-}
-
-tr[style="background-color\\:\\#C6E2EE\\;"] td:first-child {
-  padding: 3rem 0 0 0 !important;
-  opacity: 0.5;
-}
-
-.k-textbox {
-  font-family: monospace !important;
-  background: white !important;
-  height: 30px !important;
-}
-
-[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(4),
-[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(5),
-[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(11),
-[id="ctl00_ContentPlaceHolder1_HeaderDisplay"] tr td:nth-child(12) {
-  opacity: 0.2 !important;
-}
-
-[summary="TDS\\ Data"] tr td:nth-child(4) > input,
-[summary="TDS\\ Data"] tr td:nth-child(5) > input,
-[summary="TDS\\ Data"] tr td:nth-child(11) > input,
-[summary="TDS\\ Data"] tr td:nth-child(12) > input {
-  opacity: 0.2;
-}
-
-[id="ctl00_ContentPlaceHolder1_FooterDisplay"] td[align="right"] {
-  font-family: monospace !important;
-  font-size: var(--nys-font-size-xl) !important;
-  color: var(--nys-color-info) !important;
-}
-
-.container #frmUpdateTimesheet .col-xs-12 #btnSubmitTimesheet_1 {
-  border: none !important;
-  background: var(--nys-color-success) !important;
-  margin-left: 2rem !important;
-}
-
 .ltm-UserMenuDropDown {
   font-variant: normal !important;
   font-weight: normal !important;
-  font-size: var(--nys-font-size-lg) !important;
+  font-size: 14px !important;
 }
 
 .ltm-UserMenuDropDown strong {
   font-weight: normal !important;
 }
 
-/* Extension UI Styles */
-.lats-modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+/* An older LATS Go! build (Chrome Web Store 1.0) may still be installed alongside this one.
+   These `html body` rules out-rank its colors for the date box, tabs, and banners. */
+html body #pickTimesheetDate {
+  background: var(--nys-color-surface) !important;
+  color: var(--nys-color-text) !important;
+  font-family: var(--nys-font-family-sans) !important;
 }
 
-.lats-modal-content {
-  background: var(--nys-color-surface);
-  color: var(--nys-color-text);
-  border-radius: var(--nys-radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin: 5% auto;
-  padding: var(--nys-space-200);
-  width: 80%;
-  max-width: 800px;
-  max-height: 80vh;
-  overflow-y: auto;
+html body .nav-tabs > li.active > a,
+html body .nav-tabs > li.active > a:hover,
+html body .nav-tabs > li.active > a:focus {
+  background: transparent !important;
+  color: var(--nys-color-text) !important;
 }
 
-.lats-modal-content h2 {
-  color: var(--nys-color-text);
-  font-size: 24px;
-  font-weight: var(--nys-font-weight-bold);
-  margin: 0 0 var(--nys-space-200) 0;
-  text-decoration: none;
-  letter-spacing: var(--nys-font-letterspacing-h2);
+html body .TimesheetSubTab {
+  background: transparent !important;
 }
 
-/* Settings Styles */
-.settings-info {
-  margin: var(--nys-space-200) 0;
-  background-color: var(--nys-color-info-weak);
-  padding: var(--nys-space-150);
-  border-radius: var(--nys-radius-md);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+html body .MissingTimeError:not(.k-header),
+html body .TdsError:not(.k-header) {
+  background: var(--nys-color-warning-weak) !important;
+  border-color: var(--nys-color-yellow-500) !important;
 }
 
-.settings-info-text {
-  font-size: 14px;
+/* Top tabs: underline style */
+.nav-tabs {
+  border: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--lg-line) !important;
 }
 
-.settings-info-link {
-  color: var(--nys-color-link);
-  font-size: 14px;
-  text-decoration: none;
+.nav-tabs > li > a {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--nys-color-text-weak) !important;
+  font-size: 14px !important;
+  padding: 10px 14px !important;
+  border-bottom: 2px solid transparent !important;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.settings-info-link:hover {
-  text-decoration: underline;
-  color: var(--nys-color-link-strongest);
-}
-
-/* Day Selection Grid */
-.days-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--nys-space-100);
-  margin: var(--nys-space-150) 0;
-}
-
-.day-card {
-  border: var(--nys-border-width-sm) solid var(--nys-color-neutral-200);
-  padding: var(--nys-space-150);
-  border-radius: var(--nys-radius-md);
-  background: var(--nys-color-surface);
-  display: flex;
-  flex-direction: column;
-  gap: var(--nys-space-100);
-}
-
-.day-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--nys-space-100);
-}
-
-.day-card-date {
-  color: var(--nys-color-text);
-  font-size: 16px;
-  font-weight: var(--nys-font-weight-bold);
-}
-
-.day-checkbox-label {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--nys-color-text);
-  gap: var(--nys-space-50);
-  font-weight: normal !important;
-  line-height: 1;
-  flex-direction: row-reverse;
-}
-
-.day-checkbox {
-  accent-color: var(--nys-color-theme);
-  margin: 0;
-  position: relative;
-  top: -1px;
-}
-
-.day-type-select {
-  width: 100%;
-  padding: var(--nys-space-50);
-  border: var(--nys-border-width-sm) solid var(--nys-color-neutral-200);
-  border-radius: var(--nys-radius-md);
-  background: var(--nys-color-surface);
-  color: var(--nys-color-text);
-  font-family: var(--nys-font-family-ui);
-  font-size: 16px;
-}
-
-/* Modal Buttons */
-.modal-buttons {
-  display: flex;
-  gap: var(--nys-space-100);
-  justify-content: flex-end;
-  margin-top: var(--nys-space-200);
-}
-
-.modal-buttons button,
-.lats-enhancer-button {
-  padding: var(--nys-space-100) var(--nys-space-200);
-  border-radius: var(--nys-radius-md);
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: var(--nys-font-weight-medium);
-  transition: all 0.2s ease;
-}
-
-#applyTimecard {
-  background-color: var(--nys-color-theme);
-  color: var(--nys-color-text-reverse);
-  border: none;
-}
-
-#applyTimecard:hover {
-  background-color: var(--nys-color-theme-strong);
-}
-
-#cancelTimecard {
-  background-color: var(--nys-color-surface) !important;
+/* `html body` out-ranks LATS's tabs.css hover (a light-cyan background with !important). */
+html body .nav-tabs > li > a:hover,
+html body .nav-tabs > li > a:focus-visible {
+  border-bottom-color: var(--nys-color-theme-weak) !important;
+  background: transparent !important;
   color: var(--nys-color-theme) !important;
-  border: 1px solid var(--nys-color-theme) !important;
 }
 
-#cancelTimecard:hover {
-  background-color: var(--nys-color-surface) !important;
-  color: var(--nys-color-theme-strong) !important;
+html body .nav-tabs > li.active > a:hover {
+  border-bottom-color: var(--nys-color-theme) !important;
+  color: var(--nys-color-text) !important;
+}
+
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  background: transparent !important;
+  color: var(--nys-color-text) !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid var(--nys-color-theme) !important;
+}
+
+/* Sub-tab links (Audit, Summary, Notes, …): quiet toolbar. Only the div: LATS reuses the class
+   on a <td> for the Subtasks window's search hint, which a flex display breaks. */
+div.TimesheetSubTab {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0 0 16px !important;
+  padding: 8px 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--lg-line) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.TimesheetSubTabItem {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.TimesheetSubTabItem a {
+  display: inline-block;
+  padding: 6px 10px !important;
+  border-radius: 4px;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--nys-color-text-weak) !important;
+  text-decoration: none !important;
+}
+
+/* `html body` out-ranks LATS's lats.css hover (a teal background, a.boldsearch:hover). */
+html body .TimesheetSubTabItem a:hover,
+html body .TimesheetSubTabItem a:focus-visible,
+html body .TimesheetSubTab a.boldsearch:hover {
+  background: var(--nys-color-theme-faint) !important;
+  color: var(--nys-color-theme) !important;
+  text-decoration: none !important;
+}
+
+/* Summary block: small uppercase labels in a fixed-width column, so the values line up;
+   regular-weight values; a muted dash for empty values. */
+.tabContent label.k-label,
+.timesheetHeader label,
+#tsEditControls label {
+  margin: 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--nys-color-text-weak) !important;
+}
+
+/* Labels that open a LATS dialog (Supervisor, Work Location, Status). LATS sizes these links
+   separately, so make them match the label. */
+.tabContent label.k-label a {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit;
+  color: inherit !important;
+  text-decoration: underline dotted !important;
+  text-decoration-color: var(--nys-color-neutral-300) !important;
+  text-underline-offset: 4px;
+}
+
+.tabContent label.k-label a:hover {
+  color: var(--nys-color-theme) !important;
+  text-decoration-color: currentColor !important;
+}
+
+.timesheetHeader {
+  font-size: 14px !important;
+  line-height: 28px;
+  color: var(--nys-color-text) !important;
+}
+
+.timesheetHeader > [class*="col-xs-"] {
+  white-space: nowrap;
+}
+
+.timesheetHeader > [class*="col-xs-"] > label.k-label {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+/* One label width per column, so each column's values start at the same place */
+.timesheetHeader > .col-xs-5 > label.k-label {
+  width: 104px;
+}
+
+.timesheetHeader > .col-xs-4 > label.k-label {
+  width: 80px;
+}
+
+.timesheetHeader > .col-xs-3 > label.k-label {
+  width: 116px;
+}
+
+#supervisorName {
+  display: inline-block !important;
+}
+
+#lnkEmployeeInfo {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--nys-color-text) !important;
+  text-decoration: none !important;
+}
+
+#lnkEmployeeInfo:hover {
+  color: var(--nys-color-theme) !important;
+  text-decoration: underline !important;
+}
+
+.timesheetHeader [data-lg-empty]::after {
+  content: "\2014";
+  color: var(--nys-color-text-weaker);
+}
+
+/* The toolbar row (Day, period arrows, Fill Timecard, Save) sits apart from the summary */
+.timesheetHeader:has(#btnSaveTimesheet_0),
+.timesheetHeader:has(#pickTimesheet) {
+  margin-top: 12px;
+}
+
+.timesheetHeader hr {
+  margin: 16px 0 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--lg-line) !important;
+}
+
+/* Status pill (FLOW-3): outlined label with the status text */
+.lg-status-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--nys-color-text-weak);
+}
+
+.lg-status-pill[data-status="unsubmitted"] {
+  color: var(--nys-color-yellow-700);
+  background: var(--nys-color-warning-weak);
+}
+
+.lg-status-pill[data-status="submitted"] {
+  color: var(--nys-color-info);
+  background: var(--nys-color-info-weak);
+}
+
+.lg-status-pill[data-status="approved"],
+.lg-status-pill[data-status="processed"] {
+  color: var(--nys-color-success);
+  background: var(--nys-color-success-weak);
+}
+
+.lg-status-pill[data-status="rejected"] {
+  color: var(--nys-color-danger);
+  background: var(--nys-color-danger-weak);
+}
+
+/* ==========================================================================
+   Buttons and Kendo widgets
+   ========================================================================== */
+
+.k-button {
+  min-height: 34px;
+  padding: 0 14px !important;
+  border: 1px solid var(--nys-color-theme) !important;
+  border-radius: 4px !important;
+  background: var(--nys-color-theme) !important;
+  color: var(--nys-color-text-reverse) !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+.k-button:hover {
+  background: var(--nys-color-theme-strong) !important;
   border-color: var(--nys-color-theme-strong) !important;
 }
 
-/* Extension Controls */
-.lats-enhancer-controls {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--nys-space-100);
-  margin-left: var(--nys-space-100);
+.k-button:focus-visible {
+  outline: 2px solid var(--nys-color-focus) !important;
+  outline-offset: 2px;
 }
 
-/* Container that holds both save button and enhancer controls */
-.col-xs-3 {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--nys-space-100);
+/* Dropdowns and date pickers: white, outlined */
+.tabContent .k-picker,
+.tabContent .k-picker-solid,
+.tabContent .k-datepicker,
+#tsEditControls .k-picker {
+  border: 1px solid var(--lg-line-strong) !important;
+  border-radius: 4px !important;
+  background: var(--nys-color-surface) !important;
+  color: var(--nys-color-text) !important;
+  box-shadow: none !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 14px !important;
 }
 
-/* Button Variants */
-#fillTimecard {
-  background-color: var(--nys-color-theme);
-  color: var(--nys-color-text-reverse);
+.tabContent .k-picker:hover,
+.tabContent .k-datepicker:hover,
+#tsEditControls .k-picker:hover {
+  border-color: var(--nys-color-neutral-400) !important;
 }
 
-#fillTimecard:hover {
-  background-color: var(--nys-color-theme-strong);
+.tabContent .k-picker.k-disabled {
+  background: var(--lg-muted-bg) !important;
+  color: var(--nys-color-text-weak) !important;
 }
 
-/* Fix Session Button */
-.lats-enhancer-button.fix-session {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
-  background-color: var(--nys-color-danger);
-  color: var(--nys-color-text-reverse);
-}
-
-.lats-enhancer-button.fix-session:hover {
-  background-color: var(--nys-color-red-600);
-}
-
-/* Loading Overlay */
-.lats-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 10000;
-  display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-.lats-loading-content {
-  background: var(--nys-color-surface);
-  padding: var(--nys-space-200);
-  border-radius: var(--nys-radius-md);
-  text-align: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  color: var(--nys-color-text);
-}
-
-.loading-text {
-  color: var(--nys-color-text-weak);
-  margin-top: var(--nys-space-50);
-}
-
-.lats-spinner {
-  border: 4px solid var(--nys-color-neutral-100);
-  border-top: 4px solid var(--nys-color-theme);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 10px;
-  animation: lats-spin 1s linear infinite;
-}
-
-/* Notification Styles */
-.lats-notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: var(--nys-space-100) var(--nys-space-200);
-  border-radius: var(--nys-radius-md);
-  color: var(--nys-color-text-reverse);
-  font-size: var(--nys-font-size-sm);
-  z-index: 10001;
-  animation: slideIn 0.3s ease-out;
-}
-
-.lats-notification.info {
-  background-color: var(--nys-color-info);
-}
-
-.lats-notification.success {
-  background-color: var(--nys-color-success);
-}
-
-.lats-notification.error {
-  background-color: var(--nys-color-danger);
-}
-
-/* States */
-.current-week td {
-  background-color: var(--nys-color-theme-weak);
-}
-
-#printTSTable input[type="text"].error {
-  border-color: var(--nys-color-danger);
-  background-color: var(--nys-color-red-100);
-}
-
-#printTSTable input[type="text"].saved {
-  border-color: var(--nys-color-success);
-  background-color: var(--nys-color-green-100);
-  transition: all 0.3s ease;
-}
-
-/* Animations */
-@keyframes slideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes slideOut {
-  from { transform: translateX(0); }
-  to { transform: translateX(100%); }
-}
-
-@keyframes lats-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-#timesheetTable th:nth-child(4),
-#timesheetTable th:nth-child(5),
-#timesheetTable th:nth-child(11),
-#timesheetTable th:nth-child(12),
-#timesheetTable td:nth-child(4),
-#timesheetTable td:nth-child(5),
-#timesheetTable td:nth-child(11),
-#timesheetTable td:nth-child(12) {
-  background: var(--nys-color-neutral-50) !important;
-  color: var(--nys-color-neutral-400) !important;
-  opacity: 0.6 !important;
-}
-
-#timesheetTable td:nth-child(4) input,
-#timesheetTable td:nth-child(5) input,
-#timesheetTable td:nth-child(11) input,
-#timesheetTable td:nth-child(12) input {
-  background: var(--nys-color-neutral-50) !important;
+.tabContent .k-picker .k-input-button,
+.tabContent .k-datepicker .k-input-button,
+#tsEditControls .k-picker .k-input-button {
+  min-height: 0;
+  padding: 0 6px !important;
   border: 0 !important;
+  background: transparent !important;
+  color: var(--nys-color-text-weak) !important;
 }
 
-button#next,
-button#previous {
-  font-size: 0 !important;
+#pickTimesheetDate {
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  background: var(--nys-color-surface) !important;
+  color: var(--nys-color-text) !important;
+}
+
+.k-datepicker {
+  width: auto !important;
+  max-width: 130px !important;
+}
+
+/* Previous and next period arrows. `html body` out-ranks rules from older LATS Go! builds. */
+html body button#next,
+html body button#previous {
   position: relative;
-  width: 24px;
-  height: 24px;
-  padding: 0 !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 !important;
+  border: 1px solid var(--lg-line-strong) !important;
+  background: var(--nys-color-surface) !important;
+  font-size: 0 !important;
   line-height: 1 !important;
-  border: 0 !important;
 }
 
-button#next .k-button-text,
-button#previous .k-button-text {
+html body button#next:hover,
+html body button#previous:hover {
+  background: var(--lg-muted-bg) !important;
+}
+
+html body button#next .k-button-text,
+html body button#previous .k-button-text {
   display: none !important;
 }
 
-button#next::after,
-button#previous::after {
-  color: var(--nys-color-text-reverse) !important;
-  font-size: 16px !important;
-  font-family: 'Arial', sans-serif !important;
-  font-weight: bold !important;
+/* Kendo uses ::after as a transparent hover overlay (absolute, opacity 0); undo that here. */
+html body button#next::after,
+html body button#previous::after {
+  position: static !important;
+  inset: auto !important;
   display: inline-block !important;
-  width: 100% !important;
-  height: 100% !important;
-  text-align: center !important;
-  line-height: 24px !important;
+  width: auto !important;
+  height: auto !important;
   opacity: 1 !important;
+  background: none !important;
   transition: none !important;
   animation: none !important;
+  color: var(--nys-color-text) !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 20px !important;
+  font-weight: 400 !important;
+  line-height: 28px !important;
 }
 
-button#next::after {
-  content: '❯' !important;
+html body button#next::after {
+  content: '\203A' !important;
 }
 
-button#previous::after {
-  content: '❮' !important;
-} 
+html body button#previous::after {
+  content: '\2039' !important;
+}
+
+#btnSubmitTimesheet_1 {
+  margin-left: 16px !important;
+  border-color: var(--nys-color-success) !important;
+  background: var(--nys-color-success) !important;
+}
+
+.lg-sparkle {
+  display: inline-block;
+  margin-right: 6px;
+}
+
+/* While filling: the sparkle twinkles */
+.lg-filling .lg-sparkle {
+  animation: lg-twinkle 0.9s ease-in-out infinite;
+}
+
+#fillTimecard.lg-filling {
+  cursor: progress;
+  opacity: 1 !important;
+}
+
+@keyframes lg-twinkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.35) rotate(18deg);
+  }
+}
+
+/* Each day's cells glow as they fill. LATS cells force a transparent background with
+   !important, which would beat an animation, so the glow is an inset shadow instead. */
+#timesheetTable td.lg-just-filled {
+  animation: lg-cell-glow 1.1s ease-out;
+}
+
+@keyframes lg-cell-glow {
+  0% {
+    box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--nys-color-accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 999px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-filling .lg-sparkle,
+  #timesheetTable td.lg-just-filled {
+    animation: none;
+  }
+}
+
+/* An older LATS Go! build adds its own Fill Timecard button; this build replaces it. */
+.lats-enhancer-controls {
+  display: none !important;
+}
+
+/* Fill Timecard sits next to Save. */
+.lg-fill-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+#frmUpdateTimesheet .col-xs-3:has(> .lg-fill-controls),
+.timesheetHeader .col-xs-3:has(> .lg-fill-controls) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   LATS dialogs and windows (Kendo)
+   One treatment for every LATS alert, confirmation, and window (sub-task picker,
+   overdue list, employee details), matching the Fill Timecard dialog in ui.css.
+   ========================================================================== */
+
+html body .k-overlay {
+  background-color: rgb(27, 27, 27) !important;
+  opacity: 0.45 !important;
+}
+
+html body .k-window {
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: var(--nys-color-surface) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  color: var(--nys-color-text) !important;
+  font-family: var(--nys-font-family-sans) !important;
+}
+
+html body .k-window-titlebar {
+  gap: 12px;
+  padding: 20px 20px 4px 24px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--nys-color-text) !important;
+}
+
+html body .k-window-title {
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: var(--nys-color-text) !important;
+}
+
+/* Close (×) and other titlebar actions: quiet icon buttons */
+html body .k-window-titlebar .k-button,
+html body .k-window-titlebar-action {
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--nys-color-text-weak) !important;
+}
+
+html body .k-window-titlebar .k-button:hover,
+html body .k-window-titlebar-action:hover {
+  background: var(--lg-muted-bg) !important;
+  color: var(--nys-color-text) !important;
+}
+
+html body .k-window-content {
+  padding: 8px 24px 20px !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+  color: var(--nys-color-text) !important;
+}
+
+/* Action bar: right-aligned, compact buttons instead of one full-width slab */
+html body .k-dialog-actions,
+html body .k-window .k-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 4px 24px 20px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+html body .k-dialog-actions .k-button,
+html body .k-window .k-actions .k-button {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 96px;
+  min-height: 36px;
+  padding: 0 16px !important;
+  border: 1px solid var(--lg-line-strong) !important;
+  border-radius: 6px !important;
+  background: var(--nys-color-surface) !important;
+  color: var(--nys-color-text) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+html body .k-dialog-actions .k-button:hover,
+html body .k-window .k-actions .k-button:hover {
+  background: var(--lg-muted-bg) !important;
+}
+
+html body .k-dialog-actions .k-button .k-button-text,
+html body .k-window .k-actions .k-button .k-button-text {
+  color: inherit !important;
+}
+
+/* Primary action, or the only one (alerts have just OK) */
+html body .k-dialog-actions .k-button-solid-primary,
+html body .k-dialog-actions .k-primary,
+html body .k-dialog-actions .k-button:only-child,
+html body .k-window .k-actions .k-button-solid-primary,
+html body .k-window .k-actions .k-button:only-child {
+  border-color: var(--nys-color-theme) !important;
+  background: var(--nys-color-theme) !important;
+  color: var(--nys-color-text-reverse) !important;
+}
+
+html body .k-dialog-actions .k-button-solid-primary:hover,
+html body .k-dialog-actions .k-primary:hover,
+html body .k-dialog-actions .k-button:only-child:hover,
+html body .k-window .k-actions .k-button-solid-primary:hover,
+html body .k-window .k-actions .k-button:only-child:hover {
+  border-color: var(--nys-color-theme-strong) !important;
+  background: var(--nys-color-theme-strong) !important;
+}
+
+html body .k-window .k-button:focus-visible {
+  outline: 2px solid var(--nys-color-focus) !important;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Notices and banners
+   ========================================================================== */
+
+/* Holiday and other notices above the grid */
+/* LATS's summary columns float and aren't cleared, so notices would wrap up beside them. */
+#timesheetContainer,
+#topLeftMessages {
+  clear: both !important;
+}
+
+#topLeftMessages {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 4px !important;
+  text-align: left !important;
+}
+
+#topLeftMessages .k-label[data-lg-empty] {
+  display: none !important;
+}
+
+#topLeftMessages .k-label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin: 0 !important;
+  padding: 3px 10px !important;
+  border: 1px solid var(--nys-color-info);
+  border-radius: 999px;
+  background: var(--nys-color-info-weak);
+  color: var(--nys-color-text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.lg-holiday-note {
+  font-weight: 400;
+  color: var(--nys-color-text-weak);
+}
+
+.lg-holiday-note::before {
+  content: "\00B7";
+  margin-right: 6px;
+}
+
+/* LATS's error rows: one calm warning callout, with an icon and text */
+.MissingTimeError:not(.k-header),
+.TdsError:not(.k-header) {
+  padding: 0 !important;
+  border: 1px solid var(--nys-color-yellow-500) !important;
+  border-left-width: 4px !important;
+  border-radius: 4px;
+  background: var(--nys-color-warning-weak) !important;
+  color: var(--nys-color-text) !important;
+  text-align: left !important;
+  font-size: 0 !important;
+}
+
+.MissingTimeError:not(.k-header) img,
+.MissingTimeError:not(.k-header) a,
+.TdsError:not(.k-header) img,
+.TdsError:not(.k-header) a {
+  display: none !important;
+}
+
+.MissingTimeError:not(.k-header)::after,
+.TdsError:not(.k-header)::after {
+  display: block;
+  padding: 10px 16px;
+  font-family: var(--nys-font-family-sans);
+  font-size: 14px !important;
+  color: var(--nys-color-text) !important;
+  text-align: left;
+}
+
+html body .MissingTimeError:not(.k-header)::after {
+  content: "\26A0\FE0E  Some days are missing time. Select Fill Timecard to fill them." !important;
+}
+
+html body .TdsError:not(.k-header)::after {
+  content: "\26A0\FE0E  Your TDS hours don't match your worked hours yet. Assign them on the TDS tab." !important;
+}
+
+/* On the TDS page itself, the Remaining row already shows what's left. */
+/* (Day headers with a mismatch also carry .TdsError, with .k-header; keep those.) */
+html.lg-restyled-tds .TdsError:not(.k-header),
+html.lg-restyled-tds table:has(> tbody > tr > td.TdsError:not(.k-header)) {
+  display: none !important;
+}
+
+.TdsError.leftColumn {
+  display: none !important;
+}
+
+/* Callouts that LATS Go! injects */
+.lg-locked-callout,
+.lg-tds-copy {
+  max-width: 960px;
+}
+
+/* ==========================================================================
+   Shared: day headers (weekday over a muted date)
+   ========================================================================== */
+
+th.lg-has-dayhead,
+#timesheetTable > tbody > tr > th.lg-has-dayhead,
+#gridHeader th.lg-has-dayhead {
+  position: relative;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  white-space: nowrap;
+}
+
+th.lg-has-dayhead br {
+  display: none;
+}
+
+.lg-dayhead {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--nys-font-family-sans);
+  line-height: 1.2;
+}
+
+/* position: relative lets LATS's per-day warning icon hang off the name's right edge. */
+.lg-dayhead__name {
+  position: relative;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nys-color-text);
+}
+
+.lg-dayhead__date {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--nys-color-text-weak);
+}
+
+.lg-dayhead__tag {
+  margin-top: 2px;
+  padding: 0 5px;
+  border: 1px solid var(--nys-color-info);
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--nys-color-info);
+}
+
+/* LATS's per-day warning icon, moved next to the day name by lats-restyle.js. It hangs off
+   the name's right edge so the name stays centered over the date. */
+.lg-dayhead__name a[id^="error_"] {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  margin-left: 3px;
+  line-height: 0;
+  transform: translateY(-55%);
+}
+
+.lg-dayhead__name a[id^="error_"] img {
+  width: 11px !important;
+  height: 11px !important;
+}
+
+[data-weekend] .lg-dayhead__name {
+  color: var(--nys-color-text-weaker);
+  font-weight: 600;
+}
+
+[data-weekend] .lg-dayhead__date {
+  color: var(--nys-color-text-weaker);
+}
+
+.lg-total-head {
+  font-family: var(--nys-font-family-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nys-color-text-weak);
+}
+
+/* ==========================================================================
+   Timesheet grid (UI-3)
+   ========================================================================== */
+
+/* LATS floats the grid and shrink-wraps its container; let it use the full width. */
+#timesheetContainer,
+#timesheetContainer > .badge-container {
+  float: none !important;
+  width: 100% !important;
+}
+
+#timesheetTable {
+  float: none !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: var(--nys-color-surface) !important;
+  font-family: var(--nys-font-family-sans) !important;
+}
+
+#timesheetTable > tbody > tr > td,
+#timesheetTable > tbody > tr > th {
+  padding: 3px 1px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--lg-line) !important;
+  background: transparent !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 13px !important;
+  font-weight: 400;
+  color: var(--nys-color-text) !important;
+  vertical-align: middle !important;
+}
+
+/* Header rows */
+#timesheetTable th.timesheetGridHeader {
+  padding: 12px 2px 10px !important;
+  border-bottom: 1px solid var(--lg-line-strong) !important;
+  text-align: center !important;
+  vertical-align: bottom !important;
+}
+
+#timesheetTable tr.lg-grid-head:last-child > * {
+  border-top: 1px solid var(--lg-line-strong) !important;
+  border-bottom: 0 !important;
+}
+
+#timesheetTable tr.lg-grid-head > td:first-child {
+  text-align: left !important;
+  padding-left: 0 !important;
+}
+
+/* Extras toggle and Misc Leave Remove: small secondary buttons */
+#showExtrasTop,
+#timesheetTable .k-button {
+  min-height: 28px;
+  padding: 0 10px !important;
+  border: 1px solid var(--lg-line-strong) !important;
+  background: var(--nys-color-surface) !important;
+  color: var(--nys-color-text) !important;
+  font-size: 12px !important;
+}
+
+#showExtrasTop:hover,
+#timesheetTable .k-button:hover {
+  background: var(--lg-muted-bg) !important;
+}
+
+#showExtrasTop .k-button-text,
+#timesheetTable .k-button .k-button-text {
+  color: var(--nys-color-text) !important;
+}
+
+/* Row labels (left), sticky when the grid scrolls sideways */
+#timesheetTable td[id$="_rowLabelLeft"],
+#timesheetTable td[id^="Start"],
+#timesheetTable tr[data-lg-total] > td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 88px;
+  padding: 3px 8px 3px 0 !important;
+  background: var(--nys-color-surface) !important;
+  text-align: left !important;
+  white-space: nowrap;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--nys-color-text-weak) !important;
+}
+
+#timesheetTable td#DayIn_rowLabelLeft,
+#timesheetTable td#LunchOut_rowLabelLeft,
+#timesheetTable td#LunchIn_rowLabelLeft,
+#timesheetTable td#DayOut_rowLabelLeft {
+  color: var(--nys-color-text) !important;
+}
+
+/* Total column (right), sticky when the grid scrolls sideways */
+#timesheetTable .lg-total-col,
+#timesheetTable tr[data-lg-total] > td.lg-total-col {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  min-width: 64px;
+  padding: 3px 0 3px 8px !important;
+  border-left: 1px solid var(--lg-line-strong) !important;
+  background: var(--nys-color-surface) !important;
+  text-align: right !important;
+  font-size: 0 !important;
+}
+
+.lg-rowsum {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--nys-font-family-sans);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--nys-color-text);
+}
+
+.lg-rowsum__duration {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--nys-color-text-weak);
+}
+
+/* Inputs */
+#timesheetTable input[type="text"] {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 30px !important;
+  padding: 0 1px !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 12px !important;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  text-align: center !important;
+  color: var(--nys-color-text) !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+#timesheetTable input[type="text"]:hover:not([readonly]):not(:disabled) {
+  border-color: var(--lg-line-strong) !important;
+  background: var(--nys-color-surface) !important;
+}
+
+#timesheetTable input[type="text"]:focus {
+  border-color: var(--nys-color-focus) !important;
+  background: var(--nys-color-surface) !important;
+  box-shadow: var(--lg-focus-ring) !important;
+  outline: none !important;
+}
+
+/* Empty time cells: a light well, so you can see where to type */
+#timesheetTable tr[data-lg-row="DayIn"] input[value=""],
+#timesheetTable tr[data-lg-row="LunchOut"] input[value=""],
+#timesheetTable tr[data-lg-row="LunchIn"] input[value=""],
+#timesheetTable tr[data-lg-row="DayOut"] input[value=""] {
+  background: var(--lg-muted-bg) !important;
+}
+
+#timesheetTable input[type="text"][value="0"],
+#timesheetTable input[type="text"][readonly] {
+  color: var(--nys-color-text-weaker) !important;
+}
+
+/* A block, not inline: inline checkboxes sit on the text baseline and leave space below. */
+#timesheetTable input[type="checkbox"] {
+  display: block !important;
+  width: 16px;
+  height: 16px;
+  margin: 0 auto !important;
+  accent-color: var(--nys-color-theme);
+  cursor: pointer;
+}
+
+/* Weekends: muted columns, no opacity tricks */
+#timesheetTable td[data-weekend],
+#timesheetTable th[data-weekend] {
+  background: var(--lg-muted-bg) !important;
+}
+
+#timesheetTable td[data-weekend] input[type="text"] {
+  color: var(--nys-color-text-weaker) !important;
+}
+
+/* State holiday columns */
+#timesheetTable td[data-holiday],
+#timesheetTable th[data-holiday] {
+  background: var(--nys-color-info-weak) !important;
+}
+
+/* Week 2 starts at column 9 of 16 */
+#timesheetTable > tbody > tr > :nth-child(9) {
+  border-left: 1px solid var(--lg-line-strong) !important;
+}
+
+/* Location rows: compact */
+#timesheetTable tr[data-lg-row="On-Site"] > td,
+#timesheetTable tr[data-lg-row="Off-Site"] > td {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  text-align: center;
+}
+
+/* Time rows: a light frame around the block */
+#timesheetTable tr[data-lg-row="DayIn"] > * {
+  border-top: 1px solid var(--lg-line-strong) !important;
+}
+
+#timesheetTable tr[data-lg-row="DayOut"] > * {
+  border-bottom: 1px solid var(--lg-line-strong) !important;
+}
+
+/* Leave rows: empty ones hide behind "Show empty leave rows" */
+html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="false"] {
+  display: none;
+}
+
+#timesheetTable tr[data-has-values="true"] > td[id$="_rowLabelLeft"] {
+  color: var(--nys-color-text) !important;
+}
+
+/* Grid corner: LATS's Extras button, then LATS Go!'s Leave button */
+#timesheetTable td.lg-grid-corner {
+  vertical-align: bottom !important;
+  padding-bottom: 8px !important;
+}
+
+#timesheetTable td.lg-grid-corner > * + * {
+  margin-top: 6px;
+}
+
+.lg-leave-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px 0 6px;
+  border: 1px solid var(--nys-color-theme);
+  border-radius: 4px;
+  background: var(--nys-color-theme-faint);
+  font-family: var(--nys-font-family-sans);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--nys-color-theme);
+  cursor: pointer;
+}
+
+.lg-leave-button::before {
+  content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.lg-leave-button[aria-expanded="true"]::before {
+  content: "\2212";
+}
+
+.lg-leave-button:hover {
+  background: var(--nys-color-theme-weak);
+}
+
+.lg-leave-button:focus-visible {
+  outline: 2px solid var(--nys-color-focus);
+  outline-offset: 2px;
+}
+
+/* Misc Leave section */
+#timesheetTable td#StartSectionMiscLeave {
+  padding-top: 16px !important;
+  border-bottom: 0 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#timesheetTable tr:has(> td[id^="MiscLeave_"]) > td {
+  padding-top: 8px !important;
+  font-weight: 600 !important;
+  border-bottom: 0 !important;
+}
+
+#timesheetTable tr:has(> td[id^="MiscLeave_"]) img {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+/* Totals rows */
+#timesheetTable tr[data-lg-total] > td {
+  font-weight: 600 !important;
+  text-align: center;
+}
+
+#timesheetTable tr[data-lg-total="worked"] > td {
+  padding-top: 10px !important;
+  border-top: 1px solid var(--lg-line-strong) !important;
+}
+
+#timesheetTable tr[data-lg-total="total"] > td {
+  padding-bottom: 10px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+#timesheetTable tr[data-lg-total] > td.lg-zero {
+  color: var(--nys-color-text-weaker) !important;
+  font-weight: 400 !important;
+}
+
+.lg-duration {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--nys-color-text-weak);
+}
+
+/* Panels under the grid. lats-restyle.js moves Work Totals right after Balances and Earnings,
+   so LATS's own half-width columns sit side by side; FMLA Usage follows at full width. */
+#frmUpdateTimesheet > .IgnoreReadOnly {
+  margin-top: 24px;
+}
+
+#frmUpdateTimesheet > .lg-panel {
+  padding-right: 12px !important;
+  padding-left: 0 !important;
+}
+
+#frmUpdateTimesheet > .lg-panel + .lg-panel {
+  padding-right: 0 !important;
+  padding-left: 12px !important;
+}
+
+#frmUpdateTimesheet > .col-xs-6.IgnoreReadOnly:not(:has(.k-header, .k-grid, table)) {
+  display: none !important;
+}
+
+#frmUpdateTimesheet .IgnoreReadOnly,
+#frmUpdateTimesheet .IgnoreReadOnly * {
+  font-family: var(--nys-font-family-sans) !important;
+}
+
+/* Panel titles: plain headings instead of light-blue bars */
+#frmUpdateTimesheet .IgnoreReadOnly div.k-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: auto !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--nys-color-text) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+}
+
+#frmUpdateTimesheet .IgnoreReadOnly div.k-header a {
+  color: var(--nys-color-text) !important;
+}
+
+#frmUpdateTimesheet .IgnoreReadOnly div.k-header strong {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--nys-color-text-weak) !important;
+}
+
+/* Header cells LATS marks with .k-header inside panel tables (Work Totals) */
+#frmUpdateTimesheet .IgnoreReadOnly td.k-header,
+#frmUpdateTimesheet .IgnoreReadOnly th.k-header,
+#frmUpdateTimesheet .IgnoreReadOnly tr.k-header > * {
+  border-color: var(--lg-line) !important;
+  background: var(--lg-muted-bg) !important;
+  color: var(--nys-color-text-weak) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+/* Grids: one card each, quiet headers, tabular numbers */
+#frmUpdateTimesheet .k-grid,
+.tabContent .k-grid {
+  overflow: hidden;
+  border: 1px solid var(--lg-line) !important;
+  border-radius: 8px;
+  background: var(--nys-color-surface) !important;
+  box-shadow: none !important;
+}
+
+#frmUpdateTimesheet .k-grid .k-grid-header,
+#frmUpdateTimesheet .k-grid .k-grid-header-wrap,
+#frmUpdateTimesheet .k-grid th,
+#frmUpdateTimesheet .k-grid .k-table-th,
+#frmUpdateTimesheet .IgnoreReadOnly th,
+.tabContent .k-grid .k-grid-header,
+.tabContent .k-grid th,
+.tabContent .k-grid .k-table-th {
+  border-color: var(--lg-line) !important;
+  background: var(--lg-muted-bg) !important;
+  color: var(--nys-color-text-weak) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+#frmUpdateTimesheet .k-grid td,
+#frmUpdateTimesheet .k-grid .k-table-td,
+#frmUpdateTimesheet .IgnoreReadOnly td,
+.tabContent .k-grid td,
+.tabContent .k-grid .k-table-td {
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+  border-color: var(--lg-line) !important;
+  background: transparent !important;
+  color: var(--nys-color-text) !important;
+  font-size: 13px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+#frmUpdateTimesheet .k-grid .k-table-row,
+#frmUpdateTimesheet .k-grid .k-alt,
+.tabContent .k-grid .k-table-row,
+.tabContent .k-grid .k-alt {
+  background: transparent !important;
+}
+
+/* Row labels (Floater, Sick, Week 1, …): left-aligned */
+#frmUpdateTimesheet .k-grid .k-table-td:first-child,
+#frmUpdateTimesheet .k-grid td:first-child {
+  text-align: left !important;
+  font-weight: 600 !important;
+}
+
+#frmUpdateTimesheet .k-grid a,
+.tabContent .k-grid a {
+  color: var(--nys-color-link) !important;
+  text-decoration: none !important;
+}
+
+#frmUpdateTimesheet .k-grid a:hover,
+.tabContent .k-grid a:hover {
+  text-decoration: underline !important;
+}
+
+/* ==========================================================================
+   TDS page (UI-4)
+   ========================================================================== */
+
+/* Task picker (Browse and Search tabs): one compact row of fields.
+   Only the top-level rows are laid out; the task-detail tables LATS nests inside
+   each field cell (#taskDetails) keep their own layout. */
+#tdsTasks .tabContainer {
+  padding: 4px 16px 16px;
+  border: 1px solid var(--lg-line);
+  border-radius: 8px;
+  background: var(--nys-color-surface);
+}
+
+#tdsTasks .nav-tabs > li > a,
+#tdsTasks .nav-tabs > li.active > a {
+  padding: 8px 12px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--nys-color-text-weak) !important;
+  font-size: 13px !important;
+}
+
+#tdsTasks .nav-tabs > li.active > a {
+  border-bottom-color: var(--nys-color-theme) !important;
+  color: var(--nys-color-text) !important;
+  font-weight: 600 !important;
+}
+
+#browseTab,
+#searchTab {
+  padding: 12px 0 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#browseTab > table.tdsTable,
+#searchTab > table.tdsTable {
+  display: block;
+  margin: 0 !important;
+}
+
+#browseTab > table.tdsTable > tbody,
+#searchTab > table.tdsTable > tbody {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 20px;
+}
+
+/* Each field: label on top, then the control, its info icon, and any button in a 36px row */
+#browseTab > table.tdsTable > tbody > tr,
+#searchTab > table.tdsTable > tbody > tr {
+  display: grid;
+  grid-template-rows: auto 36px;
+  column-gap: 8px;
+  row-gap: 4px;
+  align-items: center;
+  height: auto !important;
+}
+
+#browseTab > table.tdsTable > tbody > tr > td,
+#searchTab > table.tdsTable > tbody > tr > td {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: auto !important;
+  padding: 0 !important;
+}
+
+#browseTab > table.tdsTable > tbody > tr > td:first-child,
+#searchTab > table.tdsTable > tbody > tr > td:first-child {
+  grid-row: 1;
+  grid-column: 1 / span 4;
+}
+
+#browseTab > table.tdsTable > tbody > tr > td:not(:first-child),
+#searchTab > table.tdsTable > tbody > tr > td:not(:first-child),
+#browseTab > table.tdsTable > tbody > tr > td:first-child:has(.k-button),
+#searchTab > table.tdsTable > tbody > tr > td:first-child:has(.k-button) {
+  grid-row: 2;
+  grid-column: auto;
+}
+
+/* Agency is fixed for everyone, and LATS adds an empty spacer row. */
+#browseTab tr#AgencyRow,
+#browseTab > table.tdsTable > tbody > tr:not(:has(label, button, input, .k-picker)),
+#searchTab > table.tdsTable > tbody > tr:not(:has(label, button, input, .k-picker)) {
+  display: none !important;
+}
+
+#browseTab .k-label,
+#searchTab .k-label {
+  margin: 0 !important;
+}
+
+#browseTab > table.tdsTable .k-picker,
+#searchTab > table.tdsTable .k-picker,
+#searchTab > table.tdsTable .k-input {
+  width: 300px !important;
+  height: 36px !important;
+  min-height: 36px;
+  margin: 0 !important;
+}
+
+#browseTab > table.tdsTable a.defaultText,
+#searchTab > table.tdsTable a.defaultText {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+#btnAddTask,
+#btnAddSearchTask,
+#btnSearch {
+  height: 36px;
+  min-height: 36px;
+  margin: 0 !important;
+}
+
+#searchTab .k-checkbox-label {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--nys-color-text) !important;
+}
+
+/* Grid header */
+#gridHeader {
+  background: var(--nys-color-surface) !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--lg-line-strong);
+}
+
+#gridHeader table,
+#gridHeader tr,
+#tdsFooter table,
+#tdsFooter tr {
+  background: transparent !important;
+}
+
+#gridHeader th,
+#gridHeader td {
+  padding: 10px 2px 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+#gridHeader th[data-weekend] {
+  background: var(--lg-muted-bg) !important;
+}
+
+/* Fixed columns keep LATS's separate header, row, and footer tables aligned. */
+table.lg-cols {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+/* LATS sets inline widths on day cells; let the <colgroup> decide instead. */
+table.lg-cols > tbody > tr > td,
+table.lg-cols > tbody > tr > th,
+table.lg-cols > thead > tr > th,
+table.lg-cols > tr > td,
+table.lg-cols > tr > th {
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+col.lg-col-label {
+  width: 300px;
+}
+
+col.lg-col-total {
+  width: 88px;
+}
+
+/* Rows: title over a muted code line, on the same line as the hours */
+.distributionRow.lg-tds-row,
+.distributionRow.lg-tds-row:nth-child(even) {
+  border: 0 !important;
+  border-bottom: 1px solid var(--lg-line) !important;
+  background: var(--nys-color-surface) !important;
+  transition: background-color 0.15s ease;
+}
+
+.distributionRow.lg-tds-row:hover,
+.distributionRow.lg-tds-row:focus-within {
+  background: #fafafa !important;
+}
+
+.lg-tds-row table.tdsGrid tr:not(:has(input.distributionCell)) {
+  display: none !important;
+}
+
+.lg-tds-row table.tdsGrid td {
+  padding: 10px 3px !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-family: var(--nys-font-family-sans) !important;
+  vertical-align: middle !important;
+}
+
+.lg-tds-row table.tdsGrid tr > td:first-child {
+  padding-left: 0 !important;
+  padding-right: 16px !important;
+  text-align: left !important;
+}
+
+.lg-task {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.lg-task__title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--nys-color-text);
+}
+
+.lg-task__meta {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--nys-color-text-weak);
+}
+
+.lg-task__actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 3px;
+}
+
+.lg-task__action,
+.lg-task__action.deleteLinkHref {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--nys-color-text-weak) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  opacity: 1 !important;
+  cursor: pointer;
+}
+
+.lg-task__action:hover,
+.lg-task__action:focus-visible {
+  color: var(--nys-color-link) !important;
+}
+
+.lg-task__delete:hover,
+.lg-task__delete:focus-visible {
+  color: var(--nys-color-danger) !important;
+}
+
+/* Hour cells. `html body` out-ranks an older LATS Go! build's `.timesheetCell > input` rule. */
+html body input.distributionCell {
+  width: 100% !important;
+  height: 32px !important;
+  padding: 0 4px !important;
+  border: 1px solid var(--lg-line) !important;
+  border-radius: 4px !important;
+  background: var(--nys-color-surface) !important;
+  box-shadow: none !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 13px !important;
+  font-variant-numeric: tabular-nums;
+  text-align: center !important;
+  color: var(--nys-color-text) !important;
+}
+
+html body input.distributionCell:hover {
+  border-color: var(--nys-color-neutral-300) !important;
+}
+
+html body input.distributionCell:focus {
+  border-color: var(--nys-color-focus) !important;
+  box-shadow: var(--lg-focus-ring) !important;
+  outline: none !important;
+}
+
+html body input.distributionCell.lg-zero:not(:focus) {
+  color: var(--nys-color-neutral-300) !important;
+}
+
+/* `table.tdsGrid` out-ranks the base `.lg-tds-row table.tdsGrid td` rule's transparent background. */
+.lg-tds-row table.tdsGrid td[data-weekend] {
+  background: var(--lg-muted-bg) !important;
+}
+
+html body .lg-tds-row td[data-weekend] input.distributionCell {
+  background: transparent !important;
+}
+
+/* Total column */
+td.lg-total-col,
+th.lg-total-col {
+  padding-left: 12px !important;
+  padding-right: 0 !important;
+  border-left: 1px solid var(--lg-line) !important;
+  text-align: right !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--nys-color-text) !important;
+}
+
+/* Footer: TDS Totals, Remaining, and Work Totals */
+/* Sticky footer: a single top rule, no shadow */
+#tdsFooter {
+  position: sticky !important;
+  bottom: 0;
+  z-index: 5;
+  padding: 4px 0 !important;
+  border-top: 1px solid var(--lg-line-strong) !important;
+  background: var(--nys-color-surface) !important;
+  box-shadow: none !important;
+}
+
+/* The footer's rule replaces the last row's divider, so there's no double line. */
+#distributionRows > .distributionRow.lg-tds-row:last-child {
+  border-bottom: 0 !important;
+}
+
+#tdsFooter table.tdsGrid td {
+  padding: 6px 3px !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-family: var(--nys-font-family-sans) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--nys-color-text) !important;
+}
+
+#tdsFooter table.tdsGrid td.leftColumn {
+  padding-left: 0 !important;
+  text-align: left !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--nys-color-text-weak) !important;
+}
+
+#tdsFooter table.tdsGrid td.lg-total-col {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+}
+
+#tdsFooter table.lg-tds-dates {
+  display: none !important;
+}
+
+/* State rules repeat `table.tdsGrid` to out-rank the base `#tdsFooter table.tdsGrid td` rule. */
+#tdsFooter table.tdsGrid td[data-weekend] {
+  background: var(--lg-muted-bg) !important;
+  color: var(--nys-color-text-weaker) !important;
+}
+
+#tdsFooter table.tdsGrid td[data-mismatch="true"] {
+  color: var(--nys-color-danger) !important;
+}
+
+#tdsFooter table.tdsGrid td[data-match="true"] {
+  color: var(--nys-color-success) !important;
+}
+
+/* Remaining row (TDS-2) */
+.lg-tds-remaining td {
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.lg-tds-remaining__label {
+  display: block;
+  font-weight: 700;
+  color: var(--nys-color-text);
+}
+
+.lg-tds-remaining__value {
+  display: block;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.lg-tds-remaining__note {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* The Remaining row is a copy of the TDS Totals table inside #tdsFooter, so these rules
+   out-rank both the base footer cell rule and the weekend rule. */
+#tdsFooter .lg-tds-remaining table.tdsGrid td[data-state="none"] {
+  color: var(--nys-color-text-weaker) !important;
+}
+
+#tdsFooter .lg-tds-remaining table.tdsGrid td[data-state="done"] {
+  color: var(--nys-color-success) !important;
+}
+
+#tdsFooter .lg-tds-remaining table.tdsGrid td[data-state="left"] {
+  background: var(--nys-color-warning-weak) !important;
+  color: var(--nys-color-text) !important;
+}
+
+#tdsFooter .lg-tds-remaining table.tdsGrid td[data-state="over"] {
+  background: var(--nys-color-danger-weak) !important;
+  color: var(--nys-color-danger) !important;
+}
+
+#tdsFooter .lg-tds-remaining table.tdsGrid td.lg-total-col {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--nys-color-text-weak) !important;
+}

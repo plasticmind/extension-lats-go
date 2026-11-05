@@ -1,73 +1,86 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Load saved settings when popup opens
-  chrome.storage.sync.get({
-    alternateSchedule: false,
-    week1: {
-      timeIn: '08:30',
-      lunchOut: '12:00',
-      lunchIn: '12:30',
-      timeOut: '16:30'
-    },
-    week2: {
-      timeIn: '08:30',
-      lunchOut: '12:00',
-      lunchIn: '12:30',
-      timeOut: '16:30'
+/**
+ * LATS Go! popup
+ * Shows a summary of the saved schedule. Editing happens on the options page, which has
+ * room for the per-weekday editor.
+ */
+
+(function () {
+  'use strict';
+
+  const LG = LatsGo;
+  const el = LG.el;
+
+  function clockedPills(day) {
+    const group = el('span', { className: 'lg-pill-group' });
+    const segments = LG.getSegments(day);
+    if (!segments) {
+      group.appendChild(el('span', { className: 'lg-pill lg-pill--muted', text: 'Check times' }));
+      return group;
     }
-  }, (items) => {
-    document.getElementById('alternateSchedule').checked = items.alternateSchedule;
-    
-    // Week 1 settings
-    document.getElementById('timeIn1').value = items.week1.timeIn;
-    document.getElementById('lunchOut1').value = items.week1.lunchOut;
-    document.getElementById('lunchIn1').value = items.week1.lunchIn;
-    document.getElementById('timeOut1').value = items.week1.timeOut;
-    
-    // Week 2 settings
-    document.getElementById('timeIn2').value = items.week2.timeIn;
-    document.getElementById('lunchOut2').value = items.week2.lunchOut;
-    document.getElementById('lunchIn2').value = items.week2.lunchIn;
-    document.getElementById('timeOut2').value = items.week2.timeOut;
-    
-    // Show/hide week 2 settings based on alternate schedule
-    document.getElementById('week2Settings').style.display = 
-      items.alternateSchedule ? 'block' : 'none';
-  });
-
-  // Toggle alternate schedule visibility
-  document.getElementById('alternateSchedule').addEventListener('change', (e) => {
-    document.getElementById('week2Settings').style.display = 
-      e.target.checked ? 'block' : 'none';
-  });
-
-  // Save settings
-  document.getElementById('saveSettings').addEventListener('click', () => {
-    const settings = {
-      alternateSchedule: document.getElementById('alternateSchedule').checked,
-      week1: {
-        timeIn: document.getElementById('timeIn1').value,
-        lunchOut: document.getElementById('lunchOut1').value,
-        lunchIn: document.getElementById('lunchIn1').value,
-        timeOut: document.getElementById('timeOut1').value
-      },
-      week2: {
-        timeIn: document.getElementById('timeIn2').value,
-        lunchOut: document.getElementById('lunchOut2').value,
-        lunchIn: document.getElementById('lunchIn2').value,
-        timeOut: document.getElementById('timeOut2').value
-      }
-    };
-
-    chrome.storage.sync.set(settings, () => {
-      const saveButton = document.getElementById('saveSettings');
-      const originalText = saveButton.textContent;
-      saveButton.textContent = 'Saved!';
-      saveButton.disabled = true;
-      
-      setTimeout(() => {
-        saveButton.textContent = originalText;
-        saveButton.disabled = false;
-      }, 1500);
+    segments.forEach(function (segment, index) {
+      if (index) group.appendChild(el('span', { className: 'lg-pill-sep', text: '·' }));
+      group.appendChild(el('span', { className: 'lg-pill', text: LG.formatTime24(segment[0]) + '–' + LG.formatTime24(segment[1]) }));
     });
+    return group;
+  }
+
+  function locationLabel(value) {
+    const option = LG.LOCATION_OPTIONS.find(function (opt) { return opt.value === value; });
+    return option && value !== 'none' ? option.text : '';
+  }
+
+  function renderWeek(week, title) {
+    const wrapper = el('div', { className: 'lg-popup-week' });
+    if (title) wrapper.appendChild(el('h3', { className: 'lg-hint', text: title }));
+
+    const workdays = LG.SCHEDULE_DAY_ORDER.filter(function (key) { return week[key].works; });
+    const daysOff = LG.SCHEDULE_DAY_ORDER.filter(function (key) { return !week[key].works; });
+
+    if (!workdays.length) {
+      wrapper.appendChild(el('p', { className: 'lg-muted', text: 'No workdays set.' }));
+      return wrapper;
+    }
+
+    const tbody = el('tbody');
+    const table = el('table', { className: 'lg-table' }, [
+      el('caption', { className: 'lg-visually-hidden', text: (title || 'Weekly') + ' schedule' }),
+      tbody
+    ]);
+
+    workdays.forEach(function (key) {
+      const day = week[key];
+      const info = LG.weekdayByKey(key);
+      const location = locationLabel(day.location);
+      tbody.appendChild(el('tr', {}, [
+        el('th', { scope: 'row' }, [el('span', { className: 'lg-day__name', text: info.short })]),
+        el('td', {}, [clockedPills(day)]),
+        el('td', { className: 'lg-num' }, [location && el('span', { className: 'lg-tag lg-tag--neutral', text: location })])
+      ]));
+    });
+
+    wrapper.appendChild(el('div', { className: 'lg-table-frame' }, [table]));
+
+    if (daysOff.length) {
+      wrapper.appendChild(el('p', { className: 'lg-hint', text: 'Days off: ' + LG.formatDayList(daysOff) }));
+    }
+    return wrapper;
+  }
+
+  function render(settings) {
+    const root = document.getElementById('scheduleSummary');
+    root.textContent = '';
+    if (settings.alternateSchedule) {
+      root.appendChild(renderWeek(settings.schedule.week1, 'Week 1'));
+      root.appendChild(renderWeek(settings.schedule.week2, 'Week 2'));
+    } else {
+      root.appendChild(renderWeek(settings.schedule.week1));
+    }
+  }
+
+  document.getElementById('editSchedule').addEventListener('click', function () {
+    chrome.runtime.openOptionsPage();
+    window.close();
   });
-}); 
+
+  LG.loadSettings(render);
+})();

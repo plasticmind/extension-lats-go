@@ -1,0 +1,66 @@
+{
+  "env": {
+    "browser": true,
+    "webextensions": true,
+    "es2021": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "script"
+  },
+  "rules": {
+    "no-console": "warn",
+    "no-unused-vars": "error",
+    "no-undef": "error",
+    "semi": [
+      "error",
+      "always"
+    ],
+    "quotes": [
+      "error",
+      "single",
+      {
+        "avoidEscape": true
+      }
+    ],
+    "indent": [
+      "error",
+      2
+    ],
+    "no-multiple-empty-lines": [
+      "error",
+      {
+        "max": 1
+      }
+    ],
+    "eol-last": [
+      "error",
+      "always"
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "scripts/content.js",
+        "scripts/popup.js",
+        "scripts/options.js",
+        "scripts/lats-restyle.js"
+      ],
+      "globals": {
+        "LatsGo": "readonly"
+      }
+    },
+    {
+      "files": [
+        "tests/**/*.js"
+      ],
+      "env": {
+        "node": true
+      },
+      "parserOptions": {
+        "sourceType": "module"
+      }
+    }
+  ]
+}

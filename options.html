@@ -1,74 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>LATS Enhancer Options</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LATS Go! settings</title>
   <link rel="stylesheet" href="styles/nysds-tokens.css">
-  <link rel="stylesheet" href="styles/options.css">
+  <link rel="stylesheet" href="styles/ui.css">
 </head>
-<body>
-  <div class="container">
-    <h1>LATS Enhancer Options</h1>
-    
-    <div id="defaultAlert" class="alert">
-      If you haven't set your preferred hours, the extension will use the default schedule: 
-      8:30 AM (in), 12:00 PM (lunch out), 12:30 PM (lunch in), 4:30 PM (out)
-    </div>
+<body class="lg lg-page">
+  <main class="lg-container">
+    <header class="lg-brand">
+      <img src="images/icon48.png" alt="" width="40" height="40">
+      <h1 class="lg-title">LATS Go! settings</h1>
+    </header>
 
-    <div class="schedule-section">
-      <h2>Week 1 Schedule</h2>
-      <div class="time-inputs">
-        <div class="input-group">
-          <label for="timeIn1">Time In:</label>
-          <input type="time" id="timeIn1" />
+    <form id="settingsForm" novalidate>
+      <section class="lg-section" aria-labelledby="scheduleHeading">
+        <h2 id="scheduleHeading" class="lg-heading">Work schedule</h2>
+        <p class="lg-muted">
+          Choose the days you work, your times for each day, and where you usually work.
+          Fill Timecard pre-selects these days, and you can change any day before you apply.
+        </p>
+
+        <div class="lg-toolbar">
+          <div class="lg-choice">
+            <input type="checkbox" id="alternateSchedule" aria-describedby="alternateHint">
+            <label for="alternateSchedule">Alternate between two weekly schedules</label>
+            <p id="alternateHint" class="lg-hint">Week 1 is the first week of each pay period.</p>
+          </div>
+
+          <fieldset id="weekSwitch" class="lg-segmented lg-segmented--large" hidden>
+            <legend class="lg-visually-hidden">Week to edit</legend>
+            <input type="radio" name="weekSwitch" id="weekSwitch1" value="week1" checked>
+            <label for="weekSwitch1">Week 1</label>
+            <input type="radio" name="weekSwitch" id="weekSwitch2" value="week2">
+            <label for="weekSwitch2">Week 2</label>
+          </fieldset>
         </div>
-        <div class="input-group">
-          <label for="lunchOut1">Lunch Out:</label>
-          <input type="time" id="lunchOut1" />
-        </div>
-        <div class="input-group">
-          <label for="lunchIn1">Lunch In:</label>
-          <input type="time" id="lunchIn1" />
-        </div>
-        <div class="input-group">
-          <label for="timeOut1">Time Out:</label>
-          <input type="time" id="timeOut1" />
-        </div>
+
+        <div id="scheduleTables"></div>
+
+        <p class="lg-toolbar lg-toolbar--after">
+          <button type="button" id="copyTimes" class="lg-button lg-button--ghost"></button>
+        </p>
+      </section>
+
+      <section class="lg-section" aria-labelledby="leaveHeading">
+        <h2 id="leaveHeading" class="lg-heading">Partial-day leave</h2>
+        <p class="lg-muted">
+          When you charge less than a full day of leave, LATS Go! adjusts your times so the day
+          still adds up to your schedule. You can change this for any day in Fill Timecard.
+        </p>
+        <fieldset class="lg-choice-list">
+          <legend class="lg-visually-hidden">Where partial-day leave goes</legend>
+          <div class="lg-choice">
+            <input type="radio" name="partialLeave" id="partialLeaveStart" value="start" aria-describedby="partialLeaveStartHint">
+            <label for="partialLeaveStart">Start the day later</label>
+            <p id="partialLeaveStartHint" class="lg-hint">Moves Day In. For example, 1 hour of sick leave on an 8:30 AM day makes Day In 9:30 AM.</p>
+          </div>
+          <div class="lg-choice">
+            <input type="radio" name="partialLeave" id="partialLeaveEnd" value="end" aria-describedby="partialLeaveEndHint">
+            <label for="partialLeaveEnd">End the day earlier</label>
+            <p id="partialLeaveEndHint" class="lg-hint">Moves Day Out. For example, 1 hour of leave on a 4:30 PM day makes Day Out 3:30 PM.</p>
+          </div>
+        </fieldset>
+      </section>
+
+      <div class="lg-form-actions">
+        <button type="submit" class="lg-button lg-button--primary">Save settings</button>
+        <p id="saveStatus" class="lg-status" role="status" aria-live="polite"></p>
       </div>
-    </div>
+    </form>
+  </main>
 
-    <div class="alternate-schedule">
-      <div class="checkbox-group">
-        <input type="checkbox" id="alternateSchedule" />
-        <label for="alternateSchedule">Use alternate schedule for Week 2</label>
-      </div>
-    </div>
-
-    <div class="schedule-section" id="week2Schedule" style="display: none;">
-      <h2>Week 2 Schedule</h2>
-      <div class="time-inputs">
-        <div class="input-group">
-          <label for="timeIn2">Time In:</label>
-          <input type="time" id="timeIn2" />
-        </div>
-        <div class="input-group">
-          <label for="lunchOut2">Lunch Out:</label>
-          <input type="time" id="lunchOut2" />
-        </div>
-        <div class="input-group">
-          <label for="lunchIn2">Lunch In:</label>
-          <input type="time" id="lunchIn2" />
-        </div>
-        <div class="input-group">
-          <label for="timeOut2">Time Out:</label>
-          <input type="time" id="timeOut2" />
-        </div>
-      </div>
-    </div>
-
-    <button id="save">Save Settings</button>
-    <div id="saveStatus" class="save-status">Settings saved!</div>
-  </div>
-
+  <script src="scripts/shared/utils.js"></script>
   <script src="scripts/options.js"></script>
 </body>
-</html> 
+</html>

@@ -1,4 +1,4 @@
-/* LATS GO Button */
+/* LATS Go! button */
 .lats-go-button {
   display: inline-block;
   padding: var(--nys-space-100) var(--nys-space-200);
@@ -16,7 +16,6 @@
   background-size: 200% 100% !important;
   animation: gradientShift 5s linear infinite, celebrateHue 3s linear infinite;
   transition: transform 0.2s ease;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   border: none !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -63,4 +62,122 @@
   font-weight: bold !important;
   text-decoration: none !important;
   color: white !important;
+}
+
+/* ==========================================================================
+   Login Page — Layout Reflow (Item 2)
+   Reorder the 3-column table: My Timesheet first, then Announcements + Tips
+   The table is .tabContent table:nth-of-type(2)
+   Column order in DOM: td1=Announcements, td2=Tips, td3=My Timesheet
+   ========================================================================== */
+
+.tabContent > div > table:nth-of-type(2) {
+  display: block !important;
+  width: 100% !important;
+}
+
+.tabContent > div > table:nth-of-type(2) > tbody {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: var(--nys-space-200);
+}
+
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child {
+  display: contents !important;
+}
+
+/* My Timesheet column (3rd td) — first and full-width */
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(3) {
+  order: -1 !important;
+  width: 100% !important;
+  flex: 1 1 100% !important;
+  text-align: center !important;
+  background: var(--nys-color-theme-faint) !important;
+  padding: var(--nys-space-200) !important;
+  border-right: 0 !important;
+  border-radius: var(--nys-radius-md);
+}
+
+/* Announcements column (1st td) — side-by-side below */
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(1) {
+  order: 1 !important;
+  flex: 1 1 45% !important;
+  width: auto !important;
+  vertical-align: top !important;
+  border-right: 0 !important;
+}
+
+/* Tips column (2nd td) — side-by-side below */
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(2) {
+  order: 2 !important;
+  flex: 1 1 45% !important;
+  width: auto !important;
+  vertical-align: top !important;
+  border-right: 0 !important;
+}
+
+/* Footer row (colspan=3) */
+.tabContent > div > table:nth-of-type(2) > tbody > tr:nth-child(2) {
+  order: 3 !important;
+  flex: 1 1 100% !important;
+}
+
+/* ==========================================================================
+   Login Page — De-emphasize Column Headers (Item 3)
+   ========================================================================== */
+
+.tabContent > div > table:nth-of-type(2) .k-header {
+  background: transparent !important;
+  color: var(--nys-color-text-weak) !important;
+  text-transform: uppercase;
+  font-size: var(--nys-font-size-xs) !important;
+  letter-spacing: 0.05em;
+  font-weight: normal !important;
+}
+
+/* ==========================================================================
+   Login Page — Subdue Announcement/Tips Text (Item 4)
+   ========================================================================== */
+
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(1),
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(2),
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(1) *,
+.tabContent > div > table:nth-of-type(2) > tbody > tr:first-child > td:nth-child(2) * {
+  font-size: var(--nys-font-size-sm) !important;
+  color: var(--nys-color-text-weak) !important;
+}
+
+/* ==========================================================================
+   Login Page — Announcement Collapse (Item 5, CSS portion)
+   ========================================================================== */
+
+.lats-collapsed {
+  max-height: 200px;
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.3s ease;
+}
+
+.lats-collapsed.lats-expanded {
+  max-height: none;
+  overflow: visible;
+}
+
+.lats-collapse-toggle {
+  display: block;
+  margin-top: var(--nys-space-50);
+  padding: var(--nys-space-50) var(--nys-space-100);
+  background: transparent;
+  border: var(--nys-border-width-sm) solid var(--nys-color-neutral-200);
+  border-radius: var(--nys-radius-sm);
+  color: var(--nys-color-text-weak);
+  font-size: var(--nys-font-size-xs);
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+}
+
+.lats-collapse-toggle:hover {
+  background: var(--nys-color-theme-faint);
+  color: var(--nys-color-text);
 } 

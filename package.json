@@ -1,0 +1,23 @@
+{
+  "name": "lats-go",
+  "version": "1.2.0",
+  "description": "Chrome extension that enhances the NY State LATS timesheet interface",
+  "private": true,
+  "scripts": {
+    "lint": "eslint scripts/ tests/",
+    "lint:fix": "eslint scripts/ tests/ --fix",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jsdom": "^25.0.1",
+    "vitest": "^3.2.7"
+  },
+  "keywords": [
+    "chrome-extension",
+    "lats",
+    "timesheet"
+  ],
+  "author": "",
+  "license": "MIT"
+}
