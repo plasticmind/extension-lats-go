@@ -1,1489 +1,1207 @@
-// Add this near the top of the file, after the initial function declarations
-function createUIElements() {
-  console.log('createUIElements called');
-  const isTimesheetPage = window.location.pathname.includes('/Time') || 
-                         window.location.href.includes('lats.ny.gov/Time');
-  
-  console.log('isTimesheetPage:', isTimesheetPage);
-  console.log('Current URL:', window.location.href);
-  console.log('Current pathname:', window.location.pathname);
-                         
-  if (isTimesheetPage) {
-    console.log('Inside timesheet page condition');
-    
-    const insertControls = () => {
-      console.log('insertControls function started');
-      
-      try {
-        const saveButton = document.getElementById('btnSaveTimesheet_0');
-        console.log('Save button found:', saveButton);
-        
-        const saveButtonContainer = saveButton?.closest('.col-xs-3');
-        console.log('Save button container:', saveButtonContainer);
-                        
-        if (!saveButtonContainer) {
-          console.log('Save button container not found, will retry');
-          setTimeout(insertControls, 500);
-          return;
-        }
+/**
+ * LATS Go! content script
+ * Injected on *://*.lats.ny.gov/Time* (the timesheet and TDS pages).
+ *
+ * - Timesheet page: Fill Timecard dialog (UI-2, SCHED-1, SCHED-3, SCHED-5, SCHED-6) and the
+ *   locked-period callout (FLOW-1).
+ * - TDS page: Copy rows from last period (TDS-1) and the live Remaining row (TDS-2).
+ *
+ * Content scripts can't reach LATS's jQuery, Kendo widgets, or modules. Anything that needs
+ * them goes through scripts/page-bridge.js, which runs in the page's main world.
+ */
 
-        console.log('Checking for existing controls');
-        if (!document.querySelector('.lats-enhancer-controls')) {
-          console.log('Creating control panel');
-          const controlPanel = document.createElement('div');
-          controlPanel.className = 'lats-enhancer-controls';
-          
-          console.log('Creating fill button');
-          const fillButton = document.createElement('button');
-          fillButton.id = 'fillTimecard';
-          fillButton.className = 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base lats-enhancer-button';
-          fillButton.type = 'button';
-          
-          const buttonText = document.createElement('span');
-          buttonText.className = 'k-button-text';
-          buttonText.textContent = '✨ Fill Timecard';
-          
-          fillButton.appendChild(buttonText);
-          controlPanel.appendChild(fillButton);
-          
-          console.log('Attempting to insert control panel');
-          saveButtonContainer.insertBefore(controlPanel, saveButton);
-          console.log('Control panel inserted successfully');
+if (!window.latsGoInitialized) {
+  window.latsGoInitialized = true;
 
-          // Create the modal for day selection if it doesn't exist
-          if (!document.querySelector('.lats-modal')) {
-            const modal = document.createElement('div');
-            modal.className = 'lats-modal';
-            
-            const modalContent = document.createElement('div');
-            modalContent.className = 'lats-modal-content';
-            
-            const header = document.createElement('h2');
-            header.textContent = 'Select Days to Fill';
-            modalContent.appendChild(header);
+  (function () {
+    'use strict';
 
-            // Add settings info
-            const settingsInfo = document.createElement('div');
-            settingsInfo.className = 'settings-info';
-            
-            const scheduleText = document.createElement('div');
-            scheduleText.className = 'settings-info-text';
-            scheduleText.textContent = 'Using default schedule (8:30 AM - 4:30 PM)';
-            
-            const settingsLink = document.createElement('a');
-            settingsLink.href = '#';
-            settingsLink.className = 'settings-info-link';
-            settingsLink.textContent = 'Edit Schedule Settings';
-            settingsLink.addEventListener('click', (e) => {
-              e.preventDefault();
-              chrome.runtime.sendMessage({ action: 'openOptions' });
-            });
+    const LG = LatsGo;
+    const { el, setText, numberIn, shortDate } = LG;
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const TITLE_PATTERN = /^(.*\S)\s+Day\s+(\d+)\s+([A-Za-z]+)$/;
+    const TDS_HISTORY_KEY = 'tdsHistory';
+    const TDS_HISTORY_LIMIT = 8;
 
-            settingsInfo.appendChild(scheduleText);
-            settingsInfo.appendChild(settingsLink);
-            modalContent.appendChild(settingsInfo);
+    // ========== DOM HELPERS ==========
 
-            // Check if settings exist and update schedule text
-            chrome.storage.sync.get(['week1', 'week2', 'alternateSchedule'], (settings) => {
-              if (settings.week1) {
-                const schedule = settings.alternateSchedule ? 'Custom schedule (varies by week)' : `Custom schedule (${settings.week1.timeIn} - ${settings.week1.timeOut})`;
-                scheduleText.textContent = schedule;
-              }
-            });
+    function sleep(ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
 
-            const daysContainer = document.createElement('div');
-            daysContainer.className = 'days-container';
-            modalContent.appendChild(daysContainer);
-
-            // Get the dates from the timesheet table
-            const dates = [];
-            const headerRow = document.querySelector('#printTSTable tr:first-child');
-            if (headerRow) {
-              const dateCells = headerRow.querySelectorAll('td:not(:first-child)');
-              dateCells.forEach(cell => {
-                const dateText = cell.textContent.trim();
-                if (dateText) {
-                  const date = parseDate(dateText);
-                  if (date) {
-                    // Skip weekends
-                    const day = date.getDay();
-                    if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
-                      dates.push(date);
-                    }
-                  }
-                }
-              });
-            }
-
-            // Create day selection cards
-            dates.forEach(date => {
-              const dayCard = document.createElement('div');
-              dayCard.className = 'day-card';
-
-              const dayCardHeader = document.createElement('div');
-              dayCardHeader.className = 'day-card-header';
-
-              const dateLabel = document.createElement('div');
-              dateLabel.className = 'day-card-date';
-              dateLabel.textContent = date.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                month: 'short', 
-                day: 'numeric' 
-              });
-
-              const checkboxLabel = document.createElement('label');
-              checkboxLabel.className = 'day-checkbox-label';
-              
-              const checkbox = document.createElement('input');
-              checkbox.type = 'checkbox';
-              checkbox.className = 'day-checkbox';
-              checkbox.checked = true;
-              checkbox.dataset.date = date.toISOString();
-
-              checkboxLabel.appendChild(document.createTextNode('Include'));
-              checkboxLabel.appendChild(checkbox);
-
-              dayCardHeader.appendChild(dateLabel);
-              dayCardHeader.appendChild(checkboxLabel);
-
-              const dayTypeSelect = document.createElement('select');
-              dayTypeSelect.className = 'day-type-select';
-              dayTypeSelect.dataset.date = date.toISOString();
-
-              [
-                { value: 'regular', text: 'Regular Day' },
-                { value: 'vacation', text: 'Vacation' },
-                { value: 'sick', text: 'Sick' },
-                { value: 'sickFamily', text: 'Sick Family' },
-                { value: 'personal', text: 'Personal Day' },
-                { value: 'holiday', text: 'Holiday' },
-                { value: 'floater', text: 'Floater' }
-              ].forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt.value;
-                option.textContent = opt.text;
-                dayTypeSelect.appendChild(option);
-              });
-
-              dayCard.appendChild(dayCardHeader);
-              dayCard.appendChild(dayTypeSelect);
-              daysContainer.appendChild(dayCard);
-              
-              console.log('[DEBUG] Created day card for:', date.toLocaleDateString());
-            });
-
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'modal-buttons';
-            
-            const cancelButton = document.createElement('button');
-            cancelButton.id = 'cancelTimecard';
-            cancelButton.className = 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base';
-            const cancelText = document.createElement('span');
-            cancelText.className = 'k-button-text';
-            cancelText.textContent = 'Cancel';
-            cancelButton.appendChild(cancelText);
-            
-            const applyButton = document.createElement('button');
-            applyButton.id = 'applyTimecard';
-            applyButton.className = 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base';
-            const applyText = document.createElement('span');
-            applyText.className = 'k-button-text';
-            applyText.textContent = 'Apply';
-            applyButton.appendChild(applyText);
-            
-            // Add Cancel button first, then Apply button
-            buttonContainer.appendChild(cancelButton);
-            buttonContainer.appendChild(applyButton);
-            modalContent.appendChild(buttonContainer);
-            
-            modal.appendChild(modalContent);
-            document.body.appendChild(modal);
-
-            // Add this after the modal creation code, before the initializeEventListeners call
-            const loadingOverlay = document.createElement('div');
-            loadingOverlay.className = 'lats-loading-overlay';
-
-            const loadingContent = document.createElement('div');
-            loadingContent.className = 'lats-loading-content';
-
-            const spinner = document.createElement('div');
-            spinner.className = 'lats-spinner';
-
-            const loadingText = document.createElement('div');
-            loadingText.textContent = 'Filling timecard...';
-            loadingText.className = 'loading-text';
-
-            loadingContent.appendChild(spinner);
-            loadingContent.appendChild(loadingText);
-            loadingOverlay.appendChild(loadingContent);
-            document.body.appendChild(loadingOverlay);
-
-            // Add the spinner animation
-            const style = document.createElement('style');
-            style.textContent = `
-              @keyframes lats-spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `;
-            document.head.appendChild(style);
-
-            // Initialize event listeners
-            this.initializeEventListeners();
-          }
-        } else {
-          console.log('Controls already exist');
-        }
-      } catch (error) {
-        console.error('Error in insertControls:', error);
-        console.error('Error stack:', error.stack);
-      }
+    const ICON_PATHS = {
+      close: 'M6 6l12 12M18 6L6 18',
+      lock: 'M6 11h12v10H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3',
+      info: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 11v5 M12 7.5v.5',
+      copy: 'M9 9h11v11H9z M15 9V4H4v11h5'
     };
 
-    console.log('About to start insertion attempt');
-    insertControls();
-    console.log('Insertion attempt started');
-  }
-}
-
-// Helper function to fill in time values
-function fillTimeValues(date, times) {
-  console.log('[DEBUG] fillTimeValues called with:', { 
-    date: date.toLocaleDateString(),
-    times 
-  });
-  
-  const table = document.querySelector('#timesheetTable');
-  if (!table) {
-    console.error('[DEBUG] Table not found');
-    return;
-  }
-
-  // Get the day of the week for the target date
-  const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-  // Format the target date as MM/DD to match LATS format
-  const targetDateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-  console.log('[DEBUG] Target day/date:', { dayOfWeek, targetDateStr });
-
-  // Get all rows in the table
-  const rows = table.getElementsByTagName('tr');
-  console.log('[DEBUG] Found rows:', rows.length);
-
-  // Time row types we need to fill
-  const timeRows = {
-    'Day In': times.timeIn,
-    'Lunch Out': times.lunchOut,
-    'Lunch In': times.lunchIn,
-    'Day Out': times.timeOut
-  };
-
-  // First find the column index for our target date
-  const headerRow = Array.from(rows).find(row => 
-    row.querySelector('.k-header.timesheetGridHeader')
-  );
-  
-  if (!headerRow) {
-    console.error('[DEBUG] Header row not found');
-    return;
-  }
-
-  const headerCells = headerRow.getElementsByTagName('th');
-  let targetColumnIndex = -1;
-
-  for (let i = 0; i < headerCells.length; i++) {
-    const cell = headerCells[i];
-    if (cell.textContent.trim().includes(targetDateStr)) {
-      targetColumnIndex = i;
-      break;
+    function icon(name, className) {
+      const svg = document.createElementNS(SVG_NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('focusable', 'false');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      if (className) svg.setAttribute('class', className);
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', ICON_PATHS[name]);
+      svg.appendChild(path);
+      return svg;
     }
-  }
 
-  console.log('[DEBUG] Target column index:', targetColumnIndex);
-
-  if (targetColumnIndex === -1) {
-    console.error('[DEBUG] Date column not found');
-    return;
-  }
-
-  // Process each row
-  for (const row of rows) {
-    // Check if this row has a header cell with one of our target types
-    const firstCell = row.querySelector('td');
-    if (!firstCell) continue;
-
-    const rowType = firstCell.textContent.trim();
-    if (!Object.keys(timeRows).includes(rowType)) continue;
-
-    console.log(`[DEBUG] Processing row for ${rowType}`);
-
-    // Get all input fields in this row
-    const inputs = row.getElementsByTagName('input');
-    console.log(`[DEBUG] Found ${inputs.length} inputs in row`);
-
-    // Get the input at our target column index
-    const targetInput = inputs[targetColumnIndex];
-    if (targetInput && targetInput.type === 'text') {
-      console.log(`[DEBUG] Found input for ${rowType} at column ${targetColumnIndex}`);
-      const timeValue = timeRows[rowType];
-      console.log(`[DEBUG] Setting value to ${timeValue}`);
-      
-      targetInput.value = timeValue;
-      
-      // Trigger change event
-      const event = new Event('change', { bubbles: true });
-      targetInput.dispatchEvent(event);
-      
-      // Also trigger input event
-      const inputEvent = new Event('input', { bubbles: true });
-      targetInput.dispatchEvent(inputEvent);
-      
-      // Force blur to ensure LATS validation runs
-      targetInput.blur();
-    } else {
-      console.error(`[DEBUG] No input found for ${rowType} at column ${targetColumnIndex}`);
+    function longDate(date) {
+      return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     }
-  }
-}
 
-// Helper function to fill special day type
-function fillSpecialDay(date, type) {
-  console.log('[DEBUG] Filling special day:', date, type);
-  
-  // Map UI types to input title types
-  const typeMap = {
-    'vacation': 'Vacation',
-    'sick': 'Sick',
-    'sickFamily': 'Sick Family',
-    'personal': 'Personal',
-    'holiday': 'Holiday',
-    'floater': 'Floater'
-  };
-
-  // Get the mapped type or use the original if not found
-  const mappedType = typeMap[type] || type;
-  
-  // Get the day of the week for the target date
-  const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-  
-  // Find the first header cell that matches our date to get the day number
-  const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-  const headers = Array.from(document.querySelectorAll('#timesheetTable th.k-header.timesheetGridHeader'));
-  const dayIndex = headers.findIndex(th => th.textContent.trim().startsWith(dateStr)) + 1;
-  
-  if (dayIndex === 0) {
-    console.error(`[DEBUG] Could not find header for date ${dateStr}`);
-    return;
-  }
-
-  // Find input with exact title format: "{type} Day {dayIndex} {dayOfWeek}"
-  const titlePattern = `${mappedType} Day ${dayIndex} ${dayOfWeek}`;
-  console.log('[DEBUG] Looking for title:', titlePattern);
-  
-  const input = document.querySelector(`input[type="text"][title="${titlePattern}"]`);
-  
-  if (!input) {
-    console.error(`[DEBUG] No input found with title: ${titlePattern}`);
-    return;
-  }
-
-  console.log('[DEBUG] Found input:', input.title);
-  input.value = '7.5';
-  const event = new Event('change', { bubbles: true });
-  input.dispatchEvent(event);
-}
-
-// Handle error page
-function handleErrorPage() {
-  if (document.body.textContent.includes('error')) {
-    const fixButton = document.createElement('button');
-    fixButton.textContent = 'Fix LATS Session';
-    fixButton.className = 'lats-enhancer-button';
-    fixButton.addEventListener('click', () => {
-      // Clear cookies for the LATS domain
-      chrome.runtime.sendMessage({ action: 'clearCookies' }, () => {
-        window.location.reload();
-      });
-    });
-    document.body.insertBefore(fixButton, document.body.firstChild);
-  }
-}
-
-// Create loading overlay
-function createLoadingOverlay() {
-  // Check if overlay already exists
-  if (document.querySelector('.lats-loading-overlay')) {
-    return;
-  }
-
-  const loadingOverlay = document.createElement('div');
-  loadingOverlay.className = 'lats-loading-overlay';
-
-  const loadingContent = document.createElement('div');
-  loadingContent.className = 'lats-loading-content';
-
-  const spinner = document.createElement('div');
-  spinner.className = 'lats-spinner';
-
-  const loadingText = document.createElement('div');
-  loadingText.className = 'loading-text';
-  loadingText.textContent = 'Filling timecard...';
-
-  loadingContent.appendChild(spinner);
-  loadingContent.appendChild(loadingText);
-  loadingOverlay.appendChild(loadingContent);
-  document.body.appendChild(loadingOverlay);
-}
-
-// Initialize event listeners
-function initializeEventListeners() {
-  console.log('Initializing event listeners');
-  const self = this;
-  const fillTimecardBtn = document.getElementById('fillTimecard');
-  const modal = document.querySelector('.lats-modal');
-  
-  if (fillTimecardBtn) {
-    fillTimecardBtn.addEventListener('click', () => {
-      console.log('[DEBUG] Fill button clicked');
-      if (modal) {
-        modal.style.display = 'block';
-        
-        const daysContainer = modal.querySelector('.days-container');
-        console.log('[DEBUG] Found days container:', !!daysContainer);
-        
-        if (daysContainer) {
-          daysContainer.innerHTML = ''; // Clear existing content
-          
-          // Get dates from the timesheet table
-          const dates = [];
-          const headerRow = document.querySelector('#printTSTable tr:first-child');
-          console.log('[DEBUG] Found header row:', !!headerRow);
-          
-          if (headerRow) {
-            const dateCells = headerRow.querySelectorAll('td:not(:first-child)');
-            console.log('[DEBUG] Found date cells:', dateCells.length);
-            
-            dateCells.forEach(cell => {
-              const dateText = cell.textContent.trim();
-              console.log('[DEBUG] Processing date cell:', dateText);
-              
-              if (dateText) {
-                const date = new Date();
-                const [month, day] = dateText.split('/');
-                date.setMonth(parseInt(month) - 1);
-                date.setDate(parseInt(day));
-                
-                // Skip weekends
-                const dayOfWeek = date.getDay();
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                  dates.push(date);
-                  console.log('[DEBUG] Added date:', date.toLocaleDateString());
-                } else {
-                  console.log('[DEBUG] Skipping weekend date:', date.toLocaleDateString());
-                }
-              }
-            });
-          }
-          
-          console.log('[DEBUG] Total dates to process:', dates.length);
-          
-          // Create day cards
-          dates.forEach(date => {
-            const dayCard = document.createElement('div');
-            dayCard.className = 'day-card';
-
-            const dayCardHeader = document.createElement('div');
-            dayCardHeader.className = 'day-card-header';
-
-            const dateLabel = document.createElement('div');
-            dateLabel.className = 'day-card-date';
-            dateLabel.textContent = date.toLocaleDateString('en-US', { 
-              weekday: 'short', 
-              month: 'short', 
-              day: 'numeric' 
-            });
-
-            const checkboxLabel = document.createElement('label');
-            checkboxLabel.className = 'day-checkbox-label';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'day-checkbox';
-            checkbox.checked = true;
-            checkbox.dataset.date = date.toISOString();
-
-            checkboxLabel.appendChild(document.createTextNode('Include'));
-            checkboxLabel.appendChild(checkbox);
-
-            dayCardHeader.appendChild(dateLabel);
-            dayCardHeader.appendChild(checkboxLabel);
-
-            const dayTypeSelect = document.createElement('select');
-            dayTypeSelect.className = 'day-type-select';
-            dayTypeSelect.dataset.date = date.toISOString();
-
-            [
-              { value: 'regular', text: 'Regular Day' },
-              { value: 'vacation', text: 'Vacation' },
-              { value: 'sick', text: 'Sick' },
-              { value: 'sickFamily', text: 'Sick Family' },
-              { value: 'personal', text: 'Personal Day' },
-              { value: 'holiday', text: 'Holiday' },
-              { value: 'floater', text: 'Floater' }
-            ].forEach(opt => {
-              const option = document.createElement('option');
-              option.value = opt.value;
-              option.textContent = opt.text;
-              dayTypeSelect.appendChild(option);
-            });
-
-            dayCard.appendChild(dayCardHeader);
-            dayCard.appendChild(dayTypeSelect);
-            daysContainer.appendChild(dayCard);
-            
-            console.log('[DEBUG] Created day card for:', date.toLocaleDateString());
-          });
-        }
+    function formatRange(start, end) {
+      if (start.getFullYear() === end.getFullYear()) {
+        return shortDate(start) + ' – ' + shortDate(end) + ', ' + end.getFullYear();
       }
-    });
-  }
+      return shortDate(start) + ', ' + start.getFullYear() + ' – ' + shortDate(end) + ', ' + end.getFullYear();
+    }
 
-  const applyButton = document.getElementById('applyTimecard');
-  if (applyButton) {
-    applyButton.addEventListener('click', () => {
-      console.log('[DEBUG] Apply button clicked');
-      
-      // Ensure loading overlay exists
-      createLoadingOverlay();
-      const loadingOverlay = document.querySelector('.lats-loading-overlay');
-      
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
-        
+    // ========== TOASTS ==========
+
+    let toastRegion = null;
+    let toastTimer = null;
+
+    function showToast(message, type) {
+      type = type || 'success';
+      if (!toastRegion) {
+        toastRegion = el('div', { className: 'lg', 'aria-live': 'polite' });
+        document.body.appendChild(toastRegion);
+      }
+      clearTimeout(toastTimer);
+      toastRegion.textContent = '';
+
+      const close = el('button', { type: 'button', className: 'lg-icon-button', 'aria-label': 'Dismiss' }, [icon('close')]);
+      const toast = el('div', {
+        className: 'lg-toast lg-toast--' + type,
+        role: type === 'error' ? 'alert' : null
+      }, [el('p', { className: 'lg-toast__message', text: message }), close]);
+      close.addEventListener('click', function () { toast.remove(); });
+      toastRegion.appendChild(toast);
+
+      if (type !== 'error') {
+        toastTimer = setTimeout(function () { toast.remove(); }, 8000);
+      }
+    }
+
+    // ========== TIMESHEET MODEL ==========
+
+    /**
+     * Read the timesheet's days from input titles, which follow the pattern
+     * "{Row} Day {index} {Weekday}", such as "Day In Day 1 Thursday".
+     * @returns {{days: Array, range: Object|null}|null}
+     */
+    function readTimesheet() {
+      const table = document.getElementById('timesheetTable');
+      if (!table) return null;
+
+      const pageText = document.body.innerText;
+      const range = LG.parsePeriodRange(pageText);
+      const holidays = LG.findStateHolidays(pageText);
+      const byIndex = {};
+
+      table.querySelectorAll('input').forEach(function (input) {
+        if (input.type === 'hidden') return;
+        const match = TITLE_PATTERN.exec((input.title || '').trim());
+        if (!match) return;
+        const index = parseInt(match[2], 10);
+        if (!byIndex[index]) byIndex[index] = { index: index, weekdayName: match[3], fields: {}, extras: [] };
+        // LATS has three Extra Out/In pairs per day, and they all share one title
+        // ("Extra Out Day 1 Thursday"), so keep every one of them.
+        if (/^Extra (Out|In)\b/i.test(match[1])) byIndex[index].extras.push(input);
+        else if (!byIndex[index].fields[match[1]]) byIndex[index].fields[match[1]] = input;
+      });
+
+      const headers = table.querySelectorAll('th.timesheetGridHeader');
+      const printCells = document.querySelectorAll('#printTSTable tr:first-child td:not(:first-child)');
+
+      const days = Object.keys(byIndex).map(Number).sort(function (a, b) { return a - b; }).map(function (index) {
+        const day = byIndex[index];
+        const matchesWeekday = function (date) {
+          return date && LG.WEEKDAYS[date.getDay()].long.toLowerCase() === day.weekdayName.toLowerCase();
+        };
+
+        let date = range ? LG.addDays(range.start, index - 1) : null;
+        if (!matchesWeekday(date)) date = LG.parseHeaderDate(headers[index - 1] && headers[index - 1].textContent, range);
+        if (!matchesWeekday(date)) date = LG.parseHeaderDate(printCells[index - 1] && printCells[index - 1].textContent, range) || date;
+
+        day.periodIndex = index - 1;
+        day.date = date;
+        day.key = date ? LG.dateKey(date) : null;
+        day.weekday = date ? date.getDay() : LG.WEEKDAYS.findIndex(function (w) {
+          return w.long.toLowerCase() === day.weekdayName.toLowerCase();
+        });
+        day.isWeekend = day.weekday === 0 || day.weekday === 6;
+        day.holiday = !!(day.key && holidays.indexOf(day.key) !== -1);
+        return day;
+      });
+
+      return { days: days, range: range };
+    }
+
+    function dayLabel(day) {
+      return day.date ? longDate(day.date) : LG.WEEKDAYS[day.weekday].long;
+    }
+
+    /** "Thu 8", or "Thu" when the date is unknown. */
+    function dayShortName(day) {
+      return LG.WEEKDAYS[day.weekday].short + (day.date ? ' ' + day.date.getDate() : '');
+    }
+
+    // ========== FILLING ==========
+
+    async function setFieldValue(input, value) {
+      if (!input || input.value === value) return;
+      input.focus();
+      input.value = value;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.blur();
+      await sleep(40);
+    }
+
+    async function setChecked(input, checked) {
+      if (!input || input.checked === checked) return;
+      input.click();
+      await sleep(60);
+    }
+
+    /**
+     * Fill one day. Clears the managed time and leave fields first so leftovers from an
+     * earlier fill can't combine with the new values.
+     */
+    async function fillDay(row) {
+      const day = row.day;
+      const plan = row.plan;
+      const fields = day.fields;
+      const times = plan.times || { timeIn: '', lunchOut: '', lunchIn: '', timeOut: '' };
+      const timeTargets = {
+        'Day In': times.timeIn,
+        'Lunch Out': times.lunchOut,
+        'Lunch In': times.lunchIn,
+        'Day Out': times.timeOut
+      };
+
+      for (const name of LG.TIME_ROW_NAMES) {
+        await setFieldValue(fields[name], timeTargets[name]);
+      }
+      for (const input of day.extras) {
+        await setFieldValue(input, '');
+      }
+
+      const leaveRow = row.type === 'regular' ? null : LG.DAY_TYPE_MAP[row.type];
+      for (const name of LG.LEAVE_ROW_NAMES) {
+        const input = fields[name];
+        if (!input) continue;
+        if (name === leaveRow) await setFieldValue(input, LG.formatHours(plan.leaveHours));
+        else if (parseFloat(input.value)) await setFieldValue(input, '0');
+      }
+
+      // SCHED-3: leave-only days get neither box. "Not set" leaves both boxes alone.
+      const onSite = fields['On-Site'];
+      const offSite = fields['Off-Site'];
+      if (!plan.times) {
+        await setChecked(onSite, false);
+        await setChecked(offSite, false);
+      } else if (row.location === 'onsite') {
+        await setChecked(offSite, false);
+        await setChecked(onSite, true);
+      } else if (row.location === 'offsite') {
+        await setChecked(onSite, false);
+        await setChecked(offSite, true);
+      }
+    }
+
+    // ========== FILL TIMECARD DIALOG (UI-2) ==========
+
+    let dialog = null;
+    let dialogRows = [];
+    let fillButton = null;
+
+    function planFor(row) {
+      return LG.planDay(row.entry, row.type === 'regular' ? 0 : Number(row.hours), row.placement);
+    }
+
+    function rowIsActive(row) {
+      return row.include && !row.day.holiday;
+    }
+
+    function inactiveLabel(row) {
+      if (row.day.holiday) return 'State holiday (LATS fills this)';
+      if (!row.entry.works && row.day.isWeekend) return 'Weekend';
+      if (!row.entry.works) return 'Not scheduled';
+      return 'Skipped';
+    }
+
+    function buildPills(plan, row) {
+      const group = el('span', { className: 'lg-pill-group' });
+      const segments = plan.times ? LG.getSegments(plan.times) : null;
+      if (segments) {
+        const times = el('span', { className: 'lg-pill-times' });
+        segments.forEach(function (segment, index) {
+          if (index) times.appendChild(el('span', { className: 'lg-pill-sep', 'aria-hidden': 'true', text: '·' }));
+          times.appendChild(el('span', {
+            className: 'lg-pill',
+            text: LG.formatTime24(segment[0]) + '–' + LG.formatTime24(segment[1])
+          }));
+        });
+        group.appendChild(times);
+      }
+      if (row.type !== 'regular' && plan.leaveHours > 0) {
+        const option = LG.DAY_TYPE_OPTIONS.find(function (opt) { return opt.value === row.type; });
+        group.appendChild(el('span', {
+          className: 'lg-pill lg-pill--leave',
+          text: option.text.replace(/ \(balance\)$/, '') + ' ' + LG.formatDuration(plan.leaveHours)
+        }));
+      }
+      if (!group.childNodes.length) group.appendChild(el('span', { className: 'lg-pill lg-pill--muted', text: 'No times' }));
+      return group;
+    }
+
+    /** Build the persistent controls for one row. Updates change state, not elements, so focus stays put. */
+    function buildRow(row) {
+      const day = row.day;
+      const id = 'lg-day-' + day.index;
+      const label = dayLabel(day);
+      const tr = el('tr', { 'data-index': String(day.index) });
+
+      row.includeInput = el('input', {
+        type: 'checkbox',
+        id: id + '-include',
+        'aria-label': day.holiday ? label + ', state holiday. LATS fills this day.' : 'Include ' + label
+      });
+      row.includeInput.checked = row.include;
+      row.includeInput.disabled = day.holiday;
+      tr.appendChild(el('td', { className: 'lg-col-include' }, [row.includeInput]));
+
+      const dateCell = el('th', { scope: 'row', className: 'lg-col-date' }, [
+        el('span', { className: 'lg-day', title: label }, [
+          el('span', { className: 'lg-day__name', text: LG.WEEKDAYS[day.weekday].short }),
+          el('span', { className: 'lg-day__date', text: day.date ? String(day.date.getDate()) : '' })
+        ]),
+        el('span', { className: 'lg-visually-hidden', text: ' ' + label })
+      ]);
+      tr.appendChild(dateCell);
+
+      // Day type, leave hours, and placement (SCHED-5)
+      row.typeSelect = el('select', { className: 'lg-select', id: id + '-type', 'aria-label': 'Day type, ' + label });
+      LG.DAY_TYPE_OPTIONS.forEach(function (option) {
+        row.typeSelect.appendChild(el('option', { value: option.value, text: option.text }));
+      });
+      row.typeSelect.value = row.type;
+
+      row.hoursInput = el('input', {
+        type: 'number',
+        className: 'lg-input lg-input--hours',
+        id: id + '-hours',
+        min: String(LG.LEAVE_HOURS.min),
+        max: String(LG.LEAVE_HOURS.max),
+        step: String(LG.LEAVE_HOURS.step),
+        inputmode: 'decimal',
+        'aria-label': 'Leave hours, ' + label
+      });
+      row.hoursInput.value = String(row.hours);
+      row.hoursWrap = el('span', { className: 'lg-day-type__hours' }, [row.hoursInput, el('span', { text: 'hours' })]);
+
+      row.placementSelect = el('select', { className: 'lg-select lg-select--compact', id: id + '-placement', 'aria-label': 'When the leave happens, ' + label });
+      row.placementSelect.appendChild(el('option', { value: 'start', text: 'At start of day' }));
+      row.placementSelect.appendChild(el('option', { value: 'end', text: 'At end of day' }));
+      row.placementSelect.value = row.placement;
+
+      const holidayOption = LG.DAY_TYPE_OPTIONS.find(function (opt) { return opt.value === 'holiday'; });
+      row.typeHint = el('p', { className: 'lg-hint', id: id + '-type-hint', text: holidayOption.help });
+      row.typeSelect.setAttribute('aria-describedby', row.typeHint.id);
+
+      row.typeCell = el('td', {}, [
+        el('div', { className: 'lg-day-type' }, [row.typeSelect, row.hoursWrap, row.placementSelect, row.typeHint])
+      ]);
+      tr.appendChild(row.typeCell);
+
+      // Location (SCHED-3)
+      row.locationGroup = el('fieldset', { className: 'lg-segmented' }, [
+        el('legend', { className: 'lg-visually-hidden', text: 'Location, ' + label })
+      ]);
+      LG.LOCATION_OPTIONS.forEach(function (option) {
+        const radioId = id + '-loc-' + option.value;
+        const radio = el('input', { type: 'radio', name: id + '-location', id: radioId, value: option.value });
+        radio.checked = option.value === row.location;
+        row.locationGroup.appendChild(radio);
+        row.locationGroup.appendChild(el('label', { for: radioId, text: option.text }));
+      });
+      row.locationNone = el('span', { className: 'lg-hint', text: 'None on leave days' });
+      row.locationCell = el('td', {}, [row.locationGroup, row.locationNone]);
+      tr.appendChild(row.locationCell);
+
+      row.clockedCell = el('td');
+      tr.appendChild(row.clockedCell);
+
+      row.statusPill = el('span', { className: 'lg-pill' });
+      row.statusCell = el('td', { colspan: '3', className: 'lg-status-cell' }, [row.statusPill]);
+      tr.appendChild(row.statusCell);
+
+      row.totalCell = el('td', { className: 'lg-num lg-strong lg-col-total' });
+      tr.appendChild(row.totalCell);
+
+      row.tr = tr;
+
+      row.includeInput.addEventListener('change', function () {
+        row.include = row.includeInput.checked;
+        updateRow(row);
+      });
+      row.typeSelect.addEventListener('change', function () {
+        row.type = row.typeSelect.value;
+        updateRow(row);
+      });
+      row.hoursInput.addEventListener('input', function () {
+        row.hours = row.hoursInput.value;
+        updateRow(row);
+      });
+      row.placementSelect.addEventListener('change', function () {
+        row.placement = row.placementSelect.value;
+        updateRow(row);
+      });
+      row.locationGroup.addEventListener('change', function (event) {
+        row.location = event.target.value;
+      });
+
+      return tr;
+    }
+
+    function updateRow(row) {
+      const active = rowIsActive(row);
+      row.tr.classList.toggle('lg-row-muted', !active);
+      row.typeCell.hidden = !active;
+      row.locationCell.hidden = !active;
+      row.clockedCell.hidden = !active;
+      row.statusCell.hidden = active;
+
+      if (!active) {
+        setText(row.statusPill, inactiveLabel(row));
+        setText(row.totalCell, '—');
+        row.plan = null;
+        updateTotals();
+        return;
+      }
+
+      const isLeave = row.type !== 'regular';
+      const hoursValid = !isLeave || LG.validateLeaveHours(row.hours);
+      row.hoursWrap.hidden = !isLeave;
+      row.hoursInput.setAttribute('aria-invalid', hoursValid ? 'false' : 'true');
+      row.typeHint.hidden = row.type !== 'holiday';
+
+      const plan = hoursValid ? planFor(row) : null;
+      row.plan = plan;
+      // Placement matters only for partial leave, which is when the plan keeps some worked time.
+      row.placementSelect.hidden = !(isLeave && plan && plan.times);
+
+      const leaveOnly = !!plan && !plan.times;
+      row.locationGroup.hidden = leaveOnly;
+      row.locationNone.hidden = !leaveOnly;
+
+      row.clockedCell.textContent = '';
+      if (plan) row.clockedCell.appendChild(buildPills(plan, row));
+      else row.clockedCell.appendChild(el('span', { className: 'lg-error-text', text: 'Enter 0.5 to 7.5 hours' }));
+
+      setText(row.totalCell, plan ? LG.formatDuration(plan.workedHours + plan.leaveHours) : '—');
+      updateTotals();
+    }
+
+    function totalsFor(rows) {
+      return rows.reduce(function (sum, row) {
+        if (!rowIsActive(row) || !row.plan) return sum;
+        sum.worked += row.plan.workedHours;
+        sum.leave += row.plan.leaveHours;
+        return sum;
+      }, { worked: 0, leave: 0 });
+    }
+
+    function updateTotals() {
+      if (!dialog) return;
+      const weeks = [0, 1].map(function (week) {
+        return totalsFor(dialogRows.filter(function (row) { return Math.floor(row.day.periodIndex / 7) === week; }));
+      });
+      weeks.forEach(function (total, week) {
+        const node = dialog.querySelector('[data-week-total="' + week + '"]');
+        if (node) setText(node, LG.formatDuration(total.worked + total.leave));
+        const footer = dialog.querySelector('[data-footer-week="' + week + '"]');
+        if (footer) setText(footer, LG.formatDuration(total.worked + total.leave));
+      });
+      const all = totalsFor(dialogRows);
+      setText(dialog.querySelector('[data-footer-total]'), LG.formatDuration(all.worked + all.leave));
+      const leaveItem = dialog.querySelector('[data-footer-leave]');
+      leaveItem.hidden = all.leave <= 0;
+      setText(leaveItem.querySelector('dd'), LG.formatDuration(all.leave));
+      const count = dialogRows.filter(rowIsActive).length;
+      setText(dialog.querySelector('[data-apply-label]'), count === 1 ? 'Fill 1 day' : 'Fill ' + count + ' days');
+      dialog.querySelector('[data-action="apply"]').disabled = count === 0;
+    }
+
+    function buildDialogContent(settings, timesheet) {
+      dialog.textContent = '';
+      const days = timesheet.days;
+      const first = days[0] && days[0].date;
+      const last = days[days.length - 1] && days[days.length - 1].date;
+      const periodText = timesheet.range
+        ? formatRange(timesheet.range.start, timesheet.range.end)
+        : (first && last ? formatRange(first, last) : 'This pay period');
+
+      const close = el('button', { type: 'button', className: 'lg-icon-button', 'aria-label': 'Close', 'data-action': 'close' }, [icon('close')]);
+      const editLink = el('button', { type: 'button', className: 'lg-link', text: 'Edit schedule' });
+      editLink.addEventListener('click', function () {
+        chrome.runtime.sendMessage({ action: 'openOptions' });
+      });
+
+      dialog.appendChild(el('header', { className: 'lg-dialog__header' }, [
+        el('div', {}, [
+          el('h2', { className: 'lg-title', id: 'lg-fill-title', text: 'Fill Timecard' }),
+          el('p', { className: 'lg-dialog__meta' }, [
+            el('span', { text: periodText }),
+            el('span', { 'aria-hidden': 'true', text: '·' }),
+            el('span', { text: 'Schedule: ' + LG.summarizeSchedule(settings) }),
+            editLink
+          ])
+        ]),
+        close
+      ]));
+
+      const alertBox = el('div', { className: 'lg-alert', role: 'alert', tabindex: '-1', hidden: true, 'data-role': 'errors' });
+      const table = el('table', { className: 'lg-table lg-week-table' }, [
+        el('caption', { className: 'lg-visually-hidden', text: 'Days in the pay period ' + periodText }),
+        el('thead', {}, [el('tr', {}, [
+          el('th', { scope: 'col', className: 'lg-col-include' }, [el('span', { className: 'lg-visually-hidden', text: 'Include' })]),
+          el('th', { scope: 'col', className: 'lg-col-date', text: 'Date' }),
+          el('th', { scope: 'col', text: 'Day type' }),
+          el('th', { scope: 'col', text: 'Location' }),
+          el('th', { scope: 'col', text: 'Clocked hours' }),
+          el('th', { scope: 'col', className: 'lg-num lg-col-total', text: 'Total' })
+        ])])
+      ]);
+
+      dialogRows = days.map(function (day) {
+        const entry = LG.getScheduleEntry(settings, day.periodIndex, day.weekday);
+        return {
+          day: day,
+          entry: entry,
+          include: entry.works && !day.holiday,
+          type: 'regular',
+          hours: LG.LEAVE_HOURS.fullDay,
+          placement: settings.partialLeave,
+          location: entry.location
+        };
+      });
+
+      [0, 1].forEach(function (week) {
+        const rows = dialogRows.filter(function (row) { return Math.floor(row.day.periodIndex / 7) === week; });
+        if (!rows.length) return;
+        const weekStart = rows[0].day.date;
+        const weekEnd = rows[rows.length - 1].day.date;
+        const tbody = el('tbody', {}, [
+          el('tr', { className: 'lg-week-group' }, [
+            el('th', { scope: 'rowgroup', colspan: '6' }, [
+              'Week ' + (week + 1) + (weekStart && weekEnd ? ' · ' + shortDate(weekStart) + ' – ' + shortDate(weekEnd) : ''),
+              el('span', { className: 'lg-week-group__total', 'data-week-total': String(week) })
+            ])
+          ])
+        ]);
+        rows.forEach(function (row) { tbody.appendChild(buildRow(row)); });
+        table.appendChild(tbody);
+      });
+
+      dialog.appendChild(el('div', { className: 'lg-dialog__body' }, [
+        alertBox,
+        el('div', { className: 'lg-table-frame' }, [table])
+      ]));
+
+      const cancel = el('button', { type: 'button', className: 'lg-button lg-button--secondary', 'data-action': 'close', text: 'Cancel' });
+      const apply = el('button', { type: 'button', className: 'lg-button lg-button--primary', 'data-action': 'apply' }, [
+        el('span', { 'data-apply-label': true, text: 'Fill' })
+      ]);
+
+      dialog.appendChild(el('footer', { className: 'lg-dialog__footer' }, [
+        el('dl', { className: 'lg-totals' }, [
+          el('div', {}, [el('dt', { text: 'Week 1' }), el('dd', { 'data-footer-week': '0' })]),
+          el('div', {}, [el('dt', { text: 'Week 2' }), el('dd', { 'data-footer-week': '1' })]),
+          el('div', { 'data-footer-leave': true }, [el('dt', { text: 'Leave' }), el('dd')]),
+          el('div', {}, [el('dt', { text: 'Period total' }), el('dd', { 'data-footer-total': true })])
+        ]),
+        el('div', { className: 'lg-actions' }, [cancel, apply])
+      ]));
+
+      dialog.querySelectorAll('[data-action="close"]').forEach(function (button) {
+        button.addEventListener('click', function () { dialog.close(); });
+      });
+      apply.addEventListener('click', handleApply);
+
+      dialogRows.forEach(updateRow);
+    }
+
+    function ensureDialog() {
+      if (dialog) return dialog;
+      dialog = el('dialog', { className: 'lg lg-dialog', 'aria-labelledby': 'lg-fill-title' });
+      dialog.addEventListener('click', function (event) {
+        if (event.target === dialog) dialog.close();
+      });
+      dialog.addEventListener('close', function () {
+        if (fillButton) fillButton.focus();
+      });
+      document.body.appendChild(dialog);
+
+      chrome.storage.onChanged.addListener(function (changes, area) {
+        if (area === 'sync' && dialog.open) openFillDialog();
+      });
+      return dialog;
+    }
+
+    function openFillDialog() {
+      const timesheet = readTimesheet();
+      if (!timesheet || !timesheet.days.length) {
+        showToast('LATS Go! couldn\'t read this timesheet\'s days.', 'error');
+        return;
+      }
+      ensureDialog();
+      LG.loadSettings(function (settings) {
+        buildDialogContent(settings, timesheet);
+        if (!dialog.open) dialog.showModal();
+        const firstInclude = dialog.querySelector('.lg-col-include input:not(:disabled)');
+        if (firstInclude) firstInclude.focus();
+      });
+    }
+
+    function validateRows(rows) {
+      const errors = [];
+      rows.forEach(function (row) {
+        const name = dayShortName(row.day);
+        const fields = row.day.fields;
+        if (row.type !== 'regular' && !LG.validateLeaveHours(row.hours)) {
+          errors.push(name + ': Enter leave hours from 0.5 to 7.5, in steps of 0.5.');
+          return;
+        }
+        if (!row.plan) {
+          errors.push(name + ': Check this day\'s times in your schedule settings.');
+          return;
+        }
+        if (row.type === 'regular' && !row.plan.times) {
+          errors.push(name + ': Check this day\'s times in your schedule settings.');
+          return;
+        }
+        if (row.plan.times) {
+          const orderError = LG.validateTimeOrder(row.plan.times);
+          if (orderError) errors.push(name + ': ' + orderError);
+          const missing = LG.TIME_ROW_NAMES.filter(function (rowName) { return !fields[rowName]; });
+          if (missing.length) errors.push(name + ': LATS has no ' + missing.join(', ') + ' field for this day.');
+          else if (fields['Day In'].readOnly || fields['Day In'].disabled) errors.push(name + ': LATS has locked this day.');
+        }
+        if (row.type !== 'regular' && !fields[LG.DAY_TYPE_MAP[row.type]]) {
+          errors.push(name + ': This timesheet has no ' + LG.DAY_TYPE_MAP[row.type] + ' row.');
+        }
+      });
+      return errors;
+    }
+
+    // ========== A LITTLE DELIGHT ==========
+    // Filling a timecard should feel good: the sparkle twinkles, each day's column glows as it
+    // fills, and confetti pops when it's done. With "reduce motion" on, only the toasts show.
+
+    const CONFETTI_COLORS = [
+      'var(--nys-color-theme)',
+      'var(--nys-color-accent)',
+      'var(--nys-color-success)',
+      'var(--nys-color-info)',
+      'var(--nys-color-theme-mid)'
+    ];
+
+    const CHEERS = [
+      'That\u2019s a wrap on {n}.',
+      '{n} filled. Time well spent.',
+      '{n}, done in a blink.',
+      'Look at you go: {n} filled.',
+      '{n} filled. You\u2019ve earned a coffee.'
+    ];
+
+    function prefersReducedMotion() {
+      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    function cheer(count) {
+      const days = count + (count === 1 ? ' day' : ' days');
+      return CHEERS[Math.floor(Math.random() * CHEERS.length)].replace('{n}', days);
+    }
+
+    /** A toast with a progress bar that names each day as it fills. */
+    function showProgressToast(total) {
+      showToast('', 'info');
+      clearTimeout(toastTimer); // stays up until the fill finishes
+      const toast = toastRegion.querySelector('.lg-toast');
+      // Announce the start once; per-day updates would be too chatty for screen readers.
+      toast.setAttribute('aria-live', 'off');
+      const message = toast.querySelector('.lg-toast__message');
+      message.textContent = '';
+      const label = el('span', { text: 'Filling ' + total + (total === 1 ? ' day\u2026' : ' days\u2026') });
+      const bar = el('span', { className: 'lg-progress__bar' });
+      const track = el('span', {
+        className: 'lg-progress',
+        role: 'progressbar',
+        'aria-label': 'Filling your timecard',
+        'aria-valuemin': '0',
+        'aria-valuemax': String(total),
+        'aria-valuenow': '0'
+      }, [bar]);
+      message.appendChild(label);
+      message.appendChild(track);
+      return {
+        update: function (done, dayName) {
+          if (dayName) label.textContent = 'Filling ' + dayName + '\u2026';
+          track.setAttribute('aria-valuenow', String(done));
+          bar.style.width = Math.round((done / total) * 100) + '%';
+        }
+      };
+    }
+
+    /** A brief golden glow on the cells of a day that just filled. */
+    function glowDay(day) {
+      if (prefersReducedMotion()) return;
+      const inputs = Object.values(day.fields).concat(day.extras);
+      const cells = inputs.map(function (input) { return input && input.closest('td'); })
+        .filter(function (cell, index, all) { return cell && all.indexOf(cell) === index; });
+      // Remove, reflow once, then add, so the animation restarts without a reflow per cell.
+      cells.forEach(function (cell) { cell.classList.remove('lg-just-filled'); });
+      void document.body.offsetWidth;
+      cells.forEach(function (cell) { cell.classList.add('lg-just-filled'); });
+      setTimeout(function () {
+        cells.forEach(function (cell) { cell.classList.remove('lg-just-filled'); });
+      }, 1200);
+    }
+
+    /** Confetti from the Fill Timecard button. Decorative, and skipped with "reduce motion". */
+    function burstConfetti(origin) {
+      if (prefersReducedMotion()) return;
+      const rect = origin ? origin.getBoundingClientRect() : { left: window.innerWidth / 2, top: 80, width: 0, height: 0 };
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const layer = el('div', { className: 'lg lg-confetti', 'aria-hidden': 'true' });
+      for (let i = 0; i < 42; i++) {
+        const angle = (-Math.PI / 2) + (Math.random() - 0.5) * Math.PI * 1.3;
+        const distance = 90 + Math.random() * 170;
+        const piece = el('span', { className: 'lg-confetti__piece' + (i % 3 === 0 ? ' lg-confetti__piece--round' : '') });
+        piece.style.setProperty('--x', x + 'px');
+        piece.style.setProperty('--y', y + 'px');
+        piece.style.setProperty('--dx', Math.round(Math.cos(angle) * distance) + 'px');
+        piece.style.setProperty('--dy', Math.round(Math.sin(angle) * distance) + 'px');
+        piece.style.setProperty('--rot', Math.round((Math.random() - 0.5) * 900) + 'deg');
+        piece.style.setProperty('--delay', Math.round(Math.random() * 120) + 'ms');
+        piece.style.setProperty('--c', CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
+        layer.appendChild(piece);
+      }
+      document.body.appendChild(layer);
+      setTimeout(function () { layer.remove(); }, 1800);
+    }
+
+    function setFilling(busy) {
+      if (!fillButton) return;
+      fillButton.classList.toggle('lg-filling', busy);
+      fillButton.disabled = busy;
+      if (busy) fillButton.setAttribute('aria-busy', 'true');
+      else fillButton.removeAttribute('aria-busy');
+    }
+
+    async function handleApply() {
+      const rows = dialogRows.filter(rowIsActive);
+      const errors = validateRows(rows);
+      const alertBox = dialog.querySelector('[data-role="errors"]');
+
+      if (errors.length) {
+        alertBox.textContent = '';
+        alertBox.appendChild(el('p', { text: 'Fix these days, then try again:' }));
+        alertBox.appendChild(el('ul', {}, errors.map(function (message) { return el('li', { text: message }); })));
+        alertBox.hidden = false;
+        alertBox.focus();
+        return;
+      }
+
+      // Close first: a modal dialog makes the rest of the page inert while it's open.
+      dialog.close();
+      setFilling(true);
+      const progress = showProgressToast(rows.length);
+
+      const failures = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const shortName = LG.WEEKDAYS[row.day.weekday].short + (row.day.date ? ', ' + shortDate(row.day.date) : '');
+        progress.update(i, shortName);
         try {
-          // Clear all existing values first
-          this.clearTimecard();
-          
-          chrome.storage.sync.get({
-            alternateSchedule: false,
-            week1: {
-              timeIn: '8:30 AM',
-              lunchOut: '12:00 PM',
-              lunchIn: '12:30 PM',
-              timeOut: '4:30 PM'
-            },
-            week2: {
-              timeIn: '8:30 AM',
-              lunchOut: '12:00 PM',
-              lunchIn: '12:30 PM',
-              timeOut: '4:30 PM'
-            }
-          }, (settings) => {
-            try {
-              console.log('[DEBUG] Settings loaded:', settings);
-              
-              const dayControls = document.querySelectorAll('.day-card');
-              console.log('[DEBUG] Found day cards:', dayControls.length);
-              
-              let successCount = 0;
-              let errorCount = 0;
-              
-              dayControls.forEach((card) => {
-                try {
-                  const checkbox = card.querySelector('.day-checkbox');
-                  if (!checkbox?.checked) {
-                    console.log('[DEBUG] Skipping unchecked day');
-                    return;
-                  }
-
-                  const dateText = checkbox.dataset.date;
-                  const date = new Date(dateText);
-                  const dayTypeSelect = card.querySelector('.day-type-select');
-                  const dayType = dayTypeSelect?.value;
-                  
-                  if (dayType === 'regular') {
-                    const times = settings.alternateSchedule && this.isSecondWeek(date) ? 
-                      settings.week2 : settings.week1;
-                    this.fillTimeValues(date, times);
-                    successCount++;
-                  } else if (dayType) {
-                    this.fillSpecialDay(date, dayType);
-                    successCount++;
-                  }
-                } catch (error) {
-                  console.error('[DEBUG] Error processing day card:', error);
-                  errorCount++;
-                }
-              });
-              
-              // Show final status
-              if (errorCount === 0) {
-                showNotification(`Successfully filled timecard for ${successCount} days`, 'success');
-              } else {
-                showNotification(`Completed with ${successCount} successes and ${errorCount} errors`, 'error');
-              }
-            } catch (error) {
-              console.error('[DEBUG] Error processing timecard:', error);
-              showNotification('Error filling timecard: ' + error.message, 'error');
-            } finally {
-              loadingOverlay.style.display = 'none';
-              modal.style.display = 'none';
-            }
-          });
+          await fillDay(row);
+          glowDay(row.day);
         } catch (error) {
-          console.error('[DEBUG] Error in apply button handler:', error);
-          showNotification('Error: ' + error.message, 'error');
-          loadingOverlay.style.display = 'none';
+          failures.push(dayShortName(row.day));
         }
+        progress.update(i + 1);
+      }
+      setFilling(false);
+
+      if (failures.length) {
+        showToast('Couldn\'t fill ' + failures.join(', ') + '. Check those days, then select Save.', 'error');
       } else {
-        console.error('[DEBUG] Loading overlay not found');
-        showNotification('Error: Could not show loading state', 'error');
+        burstConfetti(fillButton);
+        showToast('\uD83C\uDF89 ' + cheer(rows.length) + ' Select Save to update LATS totals.', 'success');
       }
-    });
-  }
-
-  const cancelButton = document.getElementById('cancelTimecard');
-  if (cancelButton) {
-    cancelButton.addEventListener('click', () => {
-      if (modal) {
-        modal.style.display = 'none';
-      }
-    });
-  }
-}
-
-// Helper function to parse date from LATS format
-function parseDate(dateText) {
-  const [month, day] = dateText.split('/');
-  const year = new Date().getFullYear();
-  return new Date(year, parseInt(month) - 1, parseInt(day));
-}
-
-// Helper function to determine if a date is in the second week
-function isSecondWeek(date) {
-  // Get the first date from the table
-  const firstDateCell = document.querySelector('#printTSTable tr:first-child td:nth-child(2)');
-  if (!firstDateCell) return false;
-  
-  const firstDateText = firstDateCell.textContent.trim().split('\n')[0];
-  const firstDate = parseDate(firstDateText);
-  
-  // If the date is more than 7 days after the first date, it's in the second week
-  return (date - firstDate) / (1000 * 60 * 60 * 24) >= 7;
-}
-
-// Add logging to initialization
-console.log('Content script loaded');
-
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded event fired');
-  createUIElements();
-  handleErrorPage();
-});
-
-if (document.readyState === 'complete') {
-  console.log('Document already complete');
-  createUIElements();
-  handleErrorPage();
-}
-
-(function() {
-  // Make our main function available globally for debugging
-  window.latsEnhancer = {
-    createUIElements: function() {
-      console.log('createUIElements called');
-      const isTimesheetPage = window.location.pathname.includes('/Time') || 
-                             window.location.href.includes('lats.ny.gov/Time');
-                             
-      if (isTimesheetPage) {
-        const insertControls = () => {
-          const saveButton = document.getElementById('btnSaveTimesheet_0');
-          const saveButtonContainer = saveButton?.closest('.col-xs-3');
-                            
-          if (!saveButtonContainer) {
-            console.log('Save button container not found, will retry');
-            setTimeout(insertControls, 500);
-            return;
-          }
-
-          if (!document.querySelector('.lats-enhancer-controls')) {
-            const controlPanel = document.createElement('div');
-            controlPanel.className = 'lats-enhancer-controls';
-            
-            const fillButton = document.createElement('button');
-            fillButton.id = 'fillTimecard';
-            fillButton.className = 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base lats-enhancer-button';
-            fillButton.type = 'button';
-            
-            const buttonText = document.createElement('span');
-            buttonText.className = 'k-button-text';
-            buttonText.textContent = '✨ Fill Timecard';
-            
-            fillButton.appendChild(buttonText);
-            controlPanel.appendChild(fillButton);
-            
-            saveButtonContainer.insertBefore(controlPanel, saveButton);
-            console.log('Fill Timecard button inserted');
-
-            // Create the modal for day selection if it doesn't exist
-            if (!document.querySelector('.lats-modal')) {
-              const modal = document.createElement('div');
-              modal.className = 'lats-modal';
-              
-              const modalContent = document.createElement('div');
-              modalContent.className = 'lats-modal-content';
-              
-              const header = document.createElement('h2');
-              header.textContent = 'Select Days to Fill';
-              modalContent.appendChild(header);
-
-              // Add settings info
-              const settingsInfo = document.createElement('div');
-              settingsInfo.className = 'settings-info';
-              
-              const scheduleText = document.createElement('div');
-              scheduleText.className = 'settings-info-text';
-              scheduleText.textContent = 'Using default schedule (8:30 AM - 4:30 PM)';
-              
-              const settingsLink = document.createElement('a');
-              settingsLink.href = '#';
-              settingsLink.className = 'settings-info-link';
-              settingsLink.textContent = 'Edit Schedule Settings';
-              settingsLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                chrome.runtime.sendMessage({ action: 'openOptions' });
-              });
-
-              settingsInfo.appendChild(scheduleText);
-              settingsInfo.appendChild(settingsLink);
-              modalContent.appendChild(settingsInfo);
-
-              // Check if settings exist and update schedule text
-              chrome.storage.sync.get(['week1', 'week2', 'alternateSchedule'], (settings) => {
-                if (settings.week1) {
-                  const schedule = settings.alternateSchedule ? 'Custom schedule (varies by week)' : `Custom schedule (${settings.week1.timeIn} - ${settings.week1.timeOut})`;
-                  scheduleText.textContent = schedule;
-                }
-              });
-
-              const daysContainer = document.createElement('div');
-              daysContainer.className = 'days-container';
-              modalContent.appendChild(daysContainer);
-
-              // Get the dates from the timesheet table
-              const dates = [];
-              const headerRow = document.querySelector('#printTSTable tr:first-child');
-              if (headerRow) {
-                const dateCells = headerRow.querySelectorAll('td:not(:first-child)');
-                dateCells.forEach(cell => {
-                  const dateText = cell.textContent.trim();
-                  if (dateText) {
-                    const date = parseDate(dateText);
-                    if (date) {
-                      // Skip weekends
-                      const day = date.getDay();
-                      if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
-                        dates.push(date);
-                      }
-                    }
-                  }
-                });
-              }
-
-              // Create day selection cards
-              dates.forEach(date => {
-                const dayCard = document.createElement('div');
-                dayCard.className = 'day-card';
-
-                const dayCardHeader = document.createElement('div');
-                dayCardHeader.className = 'day-card-header';
-
-                const dateLabel = document.createElement('div');
-                dateLabel.className = 'day-card-date';
-                dateLabel.textContent = date.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
-                });
-
-                const checkboxLabel = document.createElement('label');
-                checkboxLabel.className = 'day-checkbox-label';
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'day-checkbox';
-                checkbox.checked = true;
-                checkbox.dataset.date = date.toISOString();
-
-                checkboxLabel.appendChild(document.createTextNode('Include'));
-                checkboxLabel.appendChild(checkbox);
-
-                dayCardHeader.appendChild(dateLabel);
-                dayCardHeader.appendChild(checkboxLabel);
-
-                const dayTypeSelect = document.createElement('select');
-                dayTypeSelect.className = 'day-type-select';
-                dayTypeSelect.dataset.date = date.toISOString();
-
-                [
-                  { value: 'regular', text: 'Regular Day' },
-                  { value: 'vacation', text: 'Vacation' },
-                  { value: 'sick', text: 'Sick' },
-                  { value: 'sickFamily', text: 'Sick Family' },
-                  { value: 'personal', text: 'Personal Day' },
-                  { value: 'holiday', text: 'Holiday' },
-                  { value: 'floater', text: 'Floater' }
-                ].forEach(opt => {
-                  const option = document.createElement('option');
-                  option.value = opt.value;
-                  option.textContent = opt.text;
-                  dayTypeSelect.appendChild(option);
-                });
-
-                dayCard.appendChild(dayCardHeader);
-                dayCard.appendChild(dayTypeSelect);
-                daysContainer.appendChild(dayCard);
-              });
-
-              const buttonContainer = document.createElement('div');
-              buttonContainer.className = 'modal-buttons';
-              
-              const cancelButton = document.createElement('button');
-              cancelButton.id = 'cancelTimecard';
-              cancelButton.className = 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base';
-              const cancelText = document.createElement('span');
-              cancelText.className = 'k-button-text';
-              cancelText.textContent = 'Cancel';
-              cancelButton.appendChild(cancelText);
-              
-              const applyButton = document.createElement('button');
-              applyButton.id = 'applyTimecard';
-              applyButton.className = 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base';
-              const applyText = document.createElement('span');
-              applyText.className = 'k-button-text';
-              applyText.textContent = 'Apply';
-              applyButton.appendChild(applyText);
-              
-              // Add Cancel button first, then Apply button
-              buttonContainer.appendChild(cancelButton);
-              buttonContainer.appendChild(applyButton);
-              modalContent.appendChild(buttonContainer);
-              
-              modal.appendChild(modalContent);
-              document.body.appendChild(modal);
-
-              // Initialize event listeners
-              this.initializeEventListeners();
-            }
-          }
-        };
-
-        insertControls();
-      }
-    },
-
-    createDayControl: function(dateText, container) {
-      const dayDate = this.parseDate(dateText);
-      const dayOfWeek = dayDate.getDay();
-      
-      // Skip weekends (0 = Sunday, 6 = Saturday)
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return;
-      }
-
-      const dayControl = document.createElement('div');
-      dayControl.className = 'day-control';
-      dayControl.style.cssText = 'border: 1px solid #e0e0e0; padding: 10px; margin-bottom: 10px; border-radius: 4px;';
-
-      const dayHeader = document.createElement('div');
-      dayHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
-
-      const checkbox = document.createElement('div');
-      checkbox.style.cssText = 'display: flex; align-items: center;';
-      
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = true;
-      input.dataset.date = dateText;
-      input.style.marginRight = '8px';
-
-      const label = document.createElement('label');
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      label.textContent = `${days[dayOfWeek]} (${dateText})`;
-
-      checkbox.appendChild(input);
-      checkbox.appendChild(label);
-      dayHeader.appendChild(checkbox);
-
-      // Add special day type selector
-      const select = document.createElement('select');
-      select.className = 'special-day-type';
-      select.dataset.date = dateText;
-      select.style.cssText = 'padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; margin-left: 10px;';
-
-      [
-        { value: '', text: 'Regular Day' },
-        { value: 'vacation', text: 'Vacation' },
-        { value: 'sick', text: 'Sick' },
-        { value: 'sickFamily', text: 'Sick Family' },
-        { value: 'personal', text: 'Personal' },
-        { value: 'holiday', text: 'Holiday' },
-        { value: 'floater', text: 'Floater' }
-      ].forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt.value;
-        option.textContent = opt.text;
-        select.appendChild(option);
-      });
-
-      dayHeader.appendChild(select);
-      dayControl.appendChild(dayHeader);
-      container.appendChild(dayControl);
-    },
-
-    initializeEventListeners: function() {
-      console.log('Initializing event listeners');
-      const self = this;
-      const fillTimecardBtn = document.getElementById('fillTimecard');
-      const modal = document.querySelector('.lats-modal');
-      
-      if (fillTimecardBtn) {
-        fillTimecardBtn.addEventListener('click', () => {
-          console.log('[DEBUG] Fill button clicked');
-          if (modal) {
-            modal.style.display = 'block';
-            
-            const daysContainer = modal.querySelector('.days-container');
-            console.log('[DEBUG] Found days container:', !!daysContainer);
-            
-            if (daysContainer) {
-              daysContainer.innerHTML = ''; // Clear existing content
-              
-              // Get dates from the timesheet table
-              const dates = [];
-              const headerRow = document.querySelector('#printTSTable tr:first-child');
-              console.log('[DEBUG] Found header row:', !!headerRow);
-              
-              if (headerRow) {
-                const dateCells = headerRow.querySelectorAll('td:not(:first-child)');
-                console.log('[DEBUG] Found date cells:', dateCells.length);
-                
-                dateCells.forEach(cell => {
-                  const dateText = cell.textContent.trim();
-                  console.log('[DEBUG] Processing date cell:', dateText);
-                  
-                  if (dateText) {
-                    const date = new Date();
-                    const [month, day] = dateText.split('/');
-                    date.setMonth(parseInt(month) - 1);
-                    date.setDate(parseInt(day));
-                    
-                    // Skip weekends
-                    const dayOfWeek = date.getDay();
-                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                      dates.push(date);
-                      console.log('[DEBUG] Added date:', date.toLocaleDateString());
-                    } else {
-                      console.log('[DEBUG] Skipping weekend date:', date.toLocaleDateString());
-                    }
-                  }
-                });
-              }
-              
-              console.log('[DEBUG] Total dates to process:', dates.length);
-              
-              // Create day cards
-              dates.forEach(date => {
-                const dayCard = document.createElement('div');
-                dayCard.className = 'day-card';
-
-                const dayCardHeader = document.createElement('div');
-                dayCardHeader.className = 'day-card-header';
-
-                const dateLabel = document.createElement('div');
-                dateLabel.className = 'day-card-date';
-                dateLabel.textContent = date.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
-                });
-
-                const checkboxLabel = document.createElement('label');
-                checkboxLabel.className = 'day-checkbox-label';
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'day-checkbox';
-                checkbox.checked = true;
-                checkbox.dataset.date = date.toISOString();
-
-                checkboxLabel.appendChild(document.createTextNode('Include'));
-                checkboxLabel.appendChild(checkbox);
-
-                dayCardHeader.appendChild(dateLabel);
-                dayCardHeader.appendChild(checkboxLabel);
-
-                const dayTypeSelect = document.createElement('select');
-                dayTypeSelect.className = 'day-type-select';
-                dayTypeSelect.dataset.date = date.toISOString();
-
-                [
-                  { value: 'regular', text: 'Regular Day' },
-                  { value: 'vacation', text: 'Vacation' },
-                  { value: 'sick', text: 'Sick' },
-                  { value: 'sickFamily', text: 'Sick Family' },
-                  { value: 'personal', text: 'Personal Day' },
-                  { value: 'holiday', text: 'Holiday' },
-                  { value: 'floater', text: 'Floater' }
-                ].forEach(opt => {
-                  const option = document.createElement('option');
-                  option.value = opt.value;
-                  option.textContent = opt.text;
-                  dayTypeSelect.appendChild(option);
-                });
-
-                dayCard.appendChild(dayCardHeader);
-                dayCard.appendChild(dayTypeSelect);
-                daysContainer.appendChild(dayCard);
-              });
-            }
-          }
-        });
-      }
-
-      const applyButton = document.getElementById('applyTimecard');
-      if (applyButton) {
-        applyButton.addEventListener('click', () => {
-          console.log('[DEBUG] Apply button clicked');
-          
-          // Ensure loading overlay exists
-          createLoadingOverlay();
-          const loadingOverlay = document.querySelector('.lats-loading-overlay');
-          
-          if (loadingOverlay) {
-            loadingOverlay.style.display = 'flex';
-            
-            try {
-              // Clear all existing values first
-              this.clearTimecard();
-              
-              chrome.storage.sync.get({
-                alternateSchedule: false,
-                week1: {
-                  timeIn: '8:30 AM',
-                  lunchOut: '12:00 PM',
-                  lunchIn: '12:30 PM',
-                  timeOut: '4:30 PM'
-                },
-                week2: {
-                  timeIn: '8:30 AM',
-                  lunchOut: '12:00 PM',
-                  lunchIn: '12:30 PM',
-                  timeOut: '4:30 PM'
-                }
-              }, (settings) => {
-                try {
-                  console.log('[DEBUG] Settings loaded:', settings);
-                  
-                  const dayControls = document.querySelectorAll('.day-card');
-                  console.log('[DEBUG] Found day cards:', dayControls.length);
-                  
-                  let successCount = 0;
-                  let errorCount = 0;
-                  
-                  dayControls.forEach((card) => {
-                    try {
-                      const checkbox = card.querySelector('.day-checkbox');
-                      if (!checkbox?.checked) {
-                        console.log('[DEBUG] Skipping unchecked day');
-                        return;
-                      }
-
-                      const dateText = checkbox.dataset.date;
-                      const date = new Date(dateText);
-                      const dayTypeSelect = card.querySelector('.day-type-select');
-                      const dayType = dayTypeSelect?.value;
-                      
-                      if (dayType === 'regular') {
-                        const times = settings.alternateSchedule && this.isSecondWeek(date) ? 
-                          settings.week2 : settings.week1;
-                        this.fillTimeValues(date, times);
-                        successCount++;
-                      } else if (dayType) {
-                        this.fillSpecialDay(date, dayType);
-                        successCount++;
-                      }
-                    } catch (error) {
-                      console.error('[DEBUG] Error processing day card:', error);
-                      errorCount++;
-                    }
-                  });
-                  
-                  // Show final status
-                  if (errorCount === 0) {
-                    showNotification(`Successfully filled timecard for ${successCount} days`, 'success');
-                  } else {
-                    showNotification(`Completed with ${successCount} successes and ${errorCount} errors`, 'error');
-                  }
-                } catch (error) {
-                  console.error('[DEBUG] Error processing timecard:', error);
-                  showNotification('Error filling timecard: ' + error.message, 'error');
-                } finally {
-                  loadingOverlay.style.display = 'none';
-                  modal.style.display = 'none';
-                }
-              });
-            } catch (error) {
-              console.error('[DEBUG] Error in apply button handler:', error);
-              showNotification('Error: ' + error.message, 'error');
-              loadingOverlay.style.display = 'none';
-            }
-          } else {
-            console.error('[DEBUG] Loading overlay not found');
-            showNotification('Error: Could not show loading state', 'error');
-          }
-        });
-      }
-
-      const cancelButton = document.getElementById('cancelTimecard');
-      if (cancelButton) {
-        cancelButton.addEventListener('click', () => {
-          if (modal) {
-            modal.style.display = 'none';
-          }
-        });
-      }
-    },
-
-    parseDate: function(dateText) {
-      console.log('Parsing date:', dateText);
-      const [month, day] = dateText.split('/');
-      const year = new Date().getFullYear();
-      return new Date(year, parseInt(month) - 1, parseInt(day));
-    },
-
-    isSecondWeek: function(date) {
-      // Get the first day of the timesheet
-      const firstDateCell = document.querySelector('#printTSTable tr:first-child td:nth-child(2)');
-      if (!firstDateCell) return false;
-      
-      const firstDateText = firstDateCell.textContent.trim();
-      const firstDate = this.parseDate(firstDateText);
-      
-      // If the date is more than 7 days after the first date, it's in the second week
-      return date.getTime() - firstDate.getTime() > 7 * 24 * 60 * 60 * 1000;
-    },
-
-    fillSpecialDay: function(date, type) {
-      try {
-        console.log('[DEBUG] Filling special day:', date, type);
-        
-        // Map UI types to input title types
-        const typeMap = {
-          'vacation': 'Vacation',
-          'sick': 'Sick',
-          'sickFamily': 'Sick Family',
-          'personal': 'Personal',
-          'holiday': 'Holiday',
-          'floater': 'Floater'
-        };
-
-        // Get the mapped type or use the original if not found
-        const mappedType = typeMap[type] || type;
-        
-        // Get the day of the week for the target date
-        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-        
-        // Find the first header cell that matches our date to get the day number
-        const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-        const headers = Array.from(document.querySelectorAll('#timesheetTable th.k-header.timesheetGridHeader'));
-        const dayIndex = headers.findIndex(th => th.textContent.trim().startsWith(dateStr)) + 1;
-        
-        if (dayIndex === 0) {
-          throw new Error(`Could not find header for date ${dateStr}`);
-        }
-
-        // Find input with exact title format: "{type} Day {dayIndex} {dayOfWeek}"
-        const titlePattern = `${mappedType} Day ${dayIndex} ${dayOfWeek}`;
-        console.log('[DEBUG] Looking for title:', titlePattern);
-        
-        const input = document.querySelector(`input[type="text"][title="${titlePattern}"]`);
-        
-        if (!input) {
-          throw new Error(`No input found for ${mappedType} on ${dayOfWeek}`);
-        }
-
-        console.log('[DEBUG] Found input:', input.title);
-        
-        // Validate hours before setting
-        const hours = '7.5';
-        if (!validateHours(hours)) {
-          throw new Error(`Invalid hours value: ${hours}. Must be between 0 and 7.5`);
-        }
-        
-        input.value = hours;
-        const event = new Event('change', { bubbles: true });
-        input.dispatchEvent(event);
-        
-        showNotification(`Successfully filled ${mappedType} for ${dayOfWeek}`, 'success');
-      } catch (error) {
-        console.error('[DEBUG] Error in fillSpecialDay:', error);
-        showNotification(error.message, 'error');
-        throw error; // Re-throw to handle in the calling function
-      }
-    },
-
-    fillTimeValues: function(date, times) {
-      try {
-        console.log('[DEBUG] fillTimeValues called with:', { 
-          date: date.toLocaleDateString(),
-          times 
-        });
-        
-        // Validate all time values first
-        Object.entries(times).forEach(([key, value]) => {
-          if (!validateTime(value)) {
-            throw new Error(`Invalid time format for ${key}: ${value}`);
-          }
-        });
-        
-        const table = document.querySelector('#timesheetTable');
-        if (!table) {
-          throw new Error('Timesheet table not found');
-        }
-
-        // Get the day of the week for the target date
-        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-        // Format the target date as MM/DD to match LATS format
-        const targetDateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-        console.log('[DEBUG] Target day/date:', { dayOfWeek, targetDateStr });
-
-        // Get all rows in the table
-        const rows = table.getElementsByTagName('tr');
-        console.log('[DEBUG] Found rows:', rows.length);
-
-        // Time row types we need to fill
-        const timeRows = {
-          'Day In': times.timeIn,
-          'Lunch Out': times.lunchOut,
-          'Lunch In': times.lunchIn,
-          'Day Out': times.timeOut
-        };
-
-        // First find the column index for our target date
-        const headerRow = Array.from(rows).find(row => 
-          row.querySelector('.k-header.timesheetGridHeader')
-        );
-        
-        if (!headerRow) {
-          throw new Error('Header row not found');
-        }
-
-        const headerCells = headerRow.getElementsByTagName('th');
-        let targetColumnIndex = -1;
-
-        for (let i = 0; i < headerCells.length; i++) {
-          const cell = headerCells[i];
-          if (cell.textContent.trim().includes(targetDateStr)) {
-            targetColumnIndex = i;
-            break;
-          }
-        }
-
-        console.log('[DEBUG] Target column index:', targetColumnIndex);
-
-        if (targetColumnIndex === -1) {
-          throw new Error('Date column not found');
-        }
-
-        // Process each row
-        for (const row of rows) {
-          // Check if this row has a header cell with one of our target types
-          const firstCell = row.querySelector('td');
-          if (!firstCell) continue;
-
-          const rowType = firstCell.textContent.trim();
-          if (!Object.keys(timeRows).includes(rowType)) continue;
-
-          console.log(`[DEBUG] Processing row for ${rowType}`);
-
-          // Get all input fields in this row
-          const inputs = row.getElementsByTagName('input');
-          console.log(`[DEBUG] Found ${inputs.length} inputs in row`);
-
-          // Get the input at our target column index
-          const targetInput = inputs[targetColumnIndex];
-          if (targetInput && targetInput.type === 'text') {
-            console.log(`[DEBUG] Found input for ${rowType} at column ${targetColumnIndex}`);
-            const timeValue = timeRows[rowType];
-            console.log(`[DEBUG] Setting value to ${timeValue}`);
-            
-            targetInput.value = timeValue;
-            
-            // Trigger change event
-            const event = new Event('change', { bubbles: true });
-            targetInput.dispatchEvent(event);
-            
-            // Also trigger input event
-            const inputEvent = new Event('input', { bubbles: true });
-            targetInput.dispatchEvent(inputEvent);
-            
-            // Force blur to ensure LATS validation runs
-            targetInput.blur();
-          } else {
-            console.error(`[DEBUG] No input found for ${rowType} at column ${targetColumnIndex}`);
-          }
-        }
-
-        showNotification(`Successfully filled regular hours for ${dayOfWeek}`, 'success');
-      } catch (error) {
-        console.error('[DEBUG] Error in fillTimeValues:', error);
-        showNotification(error.message, 'error');
-        throw error;
-      }
-    },
-
-    // Helper function to clear all timecard values
-    clearTimecard: function() {
-      console.log('[DEBUG] Clearing timecard values');
-      
-      const table = document.querySelector('#timesheetTable');
-      if (!table) {
-        console.error('[DEBUG] Table not found');
-        return;
-      }
-
-      // Get all rows in the table
-      const rows = table.getElementsByTagName('tr');
-      
-      // Process each row
-      for (const row of rows) {
-        const firstCell = row.querySelector('td');
-        if (!firstCell) continue;
-
-        const rowType = firstCell.textContent.trim();
-        // Clear both regular time entry rows and special day rows
-        if (['Day In', 'Lunch Out', 'Lunch In', 'Day Out'].includes(rowType)) {
-          // Clear regular time entry fields
-          const inputs = row.querySelectorAll('input[type="text"]');
-          inputs.forEach(input => {
-            input.value = '';
-            const event = new Event('change', { bubbles: true });
-            input.dispatchEvent(event);
-          });
-        }
-      }
-
-      // Clear all special day fields (Vacation, Sick, Personal, etc.)
-      const specialDayInputs = table.querySelectorAll('input[type="text"][title*=" Day "][class*="timesheetCell"]');
-      specialDayInputs.forEach(input => {
-        if (input.title.match(/^(Vacation|Sick|Personal|Sick Family) Day/)) {
-          input.value = '0';
-          const event = new Event('change', { bubbles: true });
-          input.dispatchEvent(event);
+    }
+
+    function insertFillButton(saveButton) {
+      if (document.querySelector('.lg-fill-controls')) return;
+      const container = saveButton.closest('.col-xs-3') || saveButton.parentElement;
+
+      fillButton = el('button', {
+        type: 'button',
+        id: 'fillTimecard',
+        className: 'k-button k-button-lg k-rounded-lg k-button-solid k-button-solid-base',
+        'aria-haspopup': 'dialog'
+      }, [el('span', { className: 'k-button-text' }, [
+        // Decorative: screen readers announce "Fill Timecard".
+        el('span', { className: 'lg-sparkle', 'aria-hidden': 'true', text: '\u2728' }),
+        'Fill Timecard'
+      ])]);
+      fillButton.addEventListener('click', openFillDialog);
+
+      const controls = el('div', { className: 'lg-fill-controls' }, [fillButton]);
+      container.insertBefore(controls, saveButton.parentElement === container ? saveButton : container.firstChild);
+    }
+
+    // ========== LOCKED PERIOD (FLOW-1) ==========
+
+    function isLockedPeriod() {
+      if (document.getElementById('btnSaveTimesheet_0')) return false;
+      const dayIn = document.querySelector('#timesheetTable input[title^="Day In Day "]');
+      if (!dayIn || !(dayIn.readOnly || dayIn.disabled)) return false;
+      const status = LG.findTimesheetStatus(document.body.innerText);
+      return !/^(Submitted|Approved|Processed)$/i.test(status);
+    }
+
+    function insertLockedCallout() {
+      if (document.querySelector('.lg-locked-callout')) return;
+      const table = document.getElementById('timesheetTable');
+      const anchor = table.closest('#frmUpdateTimesheet > *') || table;
+
+      const button = el('button', { type: 'button', className: 'lg-button lg-button--primary', text: 'Open oldest overdue' });
+      const status = el('p', { className: 'lg-hint', role: 'status', 'aria-live': 'polite' });
+
+      button.addEventListener('click', async function () {
+        button.disabled = true;
+        setText(status, 'Opening the overdue list…');
+        try {
+          const result = await LG.callPage('openOldestOverdue', {}, 15000);
+          setText(status, result && result.selected
+            ? 'Opening the oldest overdue period…'
+            : 'Choose a period in the Overdue Timesheets list.');
+        } catch (error) {
+          setText(status, 'Couldn\'t open the overdue list. Select Overdue Timesheets in LATS instead.');
+        } finally {
+          button.disabled = false;
         }
       });
 
-      console.log('[DEBUG] Finished clearing timecard');
+      const callout = el('div', { className: 'lg lg-callout lg-locked-callout' }, [
+        icon('lock', 'lg-callout__icon'),
+        el('div', { className: 'lg-callout__body' }, [
+          el('p', { className: 'lg-callout__title', text: 'This period is locked' }),
+          el('p', { text: 'LATS unlocks this period after you submit earlier timesheets.' }),
+          status
+        ]),
+        button
+      ]);
+      anchor.parentNode.insertBefore(callout, anchor);
     }
-  };
 
-  // Initialize when the page is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      window.latsEnhancer.createUIElements();
-    });
-  } else {
-    window.latsEnhancer.createUIElements();
-  }
-})(); 
-
-// Update the fillTimecard function to handle per-day types
-function fillTimecard(settings) {
-  const table = document.querySelector('#printTSTable');
-  if (!table) return;
-
-  const selectedDays = document.querySelectorAll('.day-checkbox:checked');
-  selectedDays.forEach(checkbox => {
-    const date = new Date(checkbox.dataset.date);
-    const dayTypeSelect = checkbox.closest('.day-card').querySelector('.day-type-select');
-    const dayType = dayTypeSelect.value;
-
-    if (dayType === 'regular') {
-      // For regular days, fill in the time values
-      const times = window.latsEnhancer.isSecondWeek(date) && settings.alternateSchedule ? settings.week2 : settings.week1;
-      window.latsEnhancer.fillTimeValues(date, times);
-    } else {
-      // For special days, fill in 7.5 hours
-      window.latsEnhancer.fillSpecialDay(date, dayType);
-    }
-  });
-}
-
-// Update fillTimeValues to work with dates
-function fillTimeValues(date, times) {
-  const table = document.querySelector('#printTSTable');
-  if (!table) return;
-
-  const headerRow = table.querySelector('tr:first-child');
-  const regularRow = table.querySelector('tr:nth-child(2)');
-  
-  if (!headerRow || !regularRow) return;
-
-  const dateStr = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
-  const cells = regularRow.querySelectorAll('td');
-
-  for (let i = 1; i < cells.length; i++) {
-    const headerCell = headerRow.querySelector(`td:nth-child(${i + 1})`);
-    if (headerCell && headerCell.textContent.trim().includes(dateStr)) {
-      const inputs = cells[i].querySelectorAll('input[type="text"]');
-      if (inputs.length >= 4) {
-        inputs[0].value = times.timeIn;
-        inputs[1].value = times.lunchOut;
-        inputs[2].value = times.lunchIn;
-        inputs[3].value = times.timeOut;
+    function watchTimesheetControls(attempt) {
+      if (document.querySelector('.lg-fill-controls, .lg-locked-callout')) return;
+      const saveButton = document.getElementById('btnSaveTimesheet_0');
+      if (saveButton) {
+        insertFillButton(saveButton);
+        return;
       }
-      break;
+      // Give LATS a moment to render the Save button before deciding the period is locked.
+      if (attempt >= 6 && isLockedPeriod()) {
+        insertLockedCallout();
+        return;
+      }
+      if (attempt < 40) setTimeout(function () { watchTimesheetControls(attempt + 1); }, 250);
     }
-  }
+
+    // Weekend marks, empty leave rows, and Total columns on both pages come from
+    // scripts/lats-restyle.js.
+
+    function initTimesheetPage() {
+      watchTimesheetControls(0);
+    }
+
+    // ========== TDS PAGE ==========
+
+    function subTaskLinks() {
+      return Array.prototype.slice.call(document.querySelectorAll('a[href*="DisplaySubTasks"], a[id^="lnkSubTask_"]'));
+    }
+
+    /**
+     * Read the TDS rows: category, task code, and sub-task. A row without a sub-task shows the
+     * link text "sub tasks".
+     */
+    function readTdsRows() {
+      return subTaskLinks().map(function (link) {
+        const container = link.closest('.distributionRow') || link.closest('table');
+        // LATS keeps each row's codes in hidden fields. Prefer them over the visible text.
+        const fields = LG.readTdsRowFields(container);
+        if (fields.categoryCode !== null && fields.taskCode) {
+          return {
+            category: fields.categoryCode,
+            categoryLabel: fields.categoryDescription || '',
+            taskCode: fields.taskCode,
+            task: fields.taskDescription ? fields.taskCode + ': ' + fields.taskDescription : fields.taskCode,
+            subTask: fields.subTaskCode || '',
+            subTaskLabel: fields.subTaskDescription || '',
+            link: link
+          };
+        }
+        const spanCells = container ? Array.prototype.slice.call(container.querySelectorAll('td[colspan]')) : [];
+        const categoryCell = spanCells.find(function (cell) { return !cell.contains(link); });
+        const taskText = LG.normalizeSpace(link.parentElement ? link.parentElement.textContent : '');
+        const codeSource = taskText + ' ' + spanCells.map(function (cell) { return cell.textContent; }).join(' ');
+        const codeMatch = codeSource.match(/\b[A-Z]{2,}-\d+\b/);
+        const taskLine = taskText.match(/\b[A-Z]{2,}-\d+:[^(]*/);
+        const linkText = LG.normalizeSpace(link.textContent);
+        const subTask = /^sub[\s-]?tasks?$/i.test(linkText) ? { code: '', label: '' } : LG.parseSubTaskLabel(linkText);
+        const category = LG.parseCategoryLabel(categoryCell ? categoryCell.textContent : '');
+        return {
+          category: category.code,
+          categoryLabel: category.label,
+          taskCode: codeMatch ? codeMatch[0] : '',
+          task: taskLine ? taskLine[0].trim() : taskText,
+          subTask: subTask.code,
+          subTaskLabel: subTask.label,
+          link: link
+        };
+      });
+    }
+
+    function tdsPeriodKey() {
+      const range = LG.parsePeriodRange(document.body.innerText);
+      if (range) return LG.dateKey(range.start);
+      const id = new URLSearchParams(location.search).get('tshdrid');
+      return id ? 'id:' + id : null;
+    }
+
+    function storedRow(row) {
+      return {
+        category: row.category,
+        categoryLabel: row.categoryLabel || '',
+        taskCode: row.taskCode,
+        task: row.task,
+        subTask: row.subTask,
+        subTaskLabel: row.subTaskLabel || ''
+      };
+    }
+
+    /** Remember this period's rows so a later period can copy them (TDS-1). */
+    function cacheTdsRows(key, rows) {
+      if (!key || !rows.length) return;
+      chrome.storage.local.get(TDS_HISTORY_KEY, function (data) {
+        const history = data[TDS_HISTORY_KEY] || {};
+        history[key] = { savedAt: Date.now(), rows: rows.map(storedRow) };
+        const keys = Object.keys(history).sort(function (a, b) { return history[b].savedAt - history[a].savedAt; });
+        keys.slice(TDS_HISTORY_LIMIT).forEach(function (old) { delete history[old]; });
+        const update = {};
+        update[TDS_HISTORY_KEY] = history;
+        chrome.storage.local.set(update);
+      });
+    }
+
+    function findPreviousPeriod(history, currentKey) {
+      const isDate = function (key) { return !!LG.parseDateKey(key); };
+      const keys = Object.keys(history).filter(function (key) { return key !== currentKey && history[key].rows.length; });
+      if (isDate(currentKey || '')) {
+        const earlier = keys.filter(function (key) { return isDate(key) && key < currentKey; }).sort();
+        if (earlier.length) return earlier[earlier.length - 1];
+      }
+      keys.sort(function (a, b) { return history[b].savedAt - history[a].savedAt; });
+      return keys[0] || null;
+    }
+
+    /**
+     * What page-bridge.js needs to add a row. It runs in the page's world without LatsGo, so
+     * strip descriptions here, including from rows cached by older builds.
+     */
+    function bridgeRow(row) {
+      const subTaskCode = LG.parseSubTaskLabel(row.subTask || '').code;
+      return {
+        categoryCode: LG.parseCategoryLabel(row.category || '').code,
+        taskCode: row.taskCode,
+        task: row.task,
+        subTaskCode: subTaskCode,
+        searchTerm: LG.subTaskSearchTerm(subTaskCode)
+      };
+    }
+
+    function describeRow(row) {
+      return [row.taskCode || row.task, row.subTask].filter(Boolean).join(' · ');
+    }
+
+    function insertCopyRowsCallout(currentKey) {
+      if (document.querySelector('.lg-tds-copy')) return;
+      const anchor = document.getElementById('distributionRows');
+      if (!anchor) return;
+
+      const source = el('p', { className: 'lg-hint' });
+      const status = el('p', { className: 'lg-hint', role: 'status', 'aria-live': 'polite' });
+      const results = el('ul', { className: 'lg-callout__list', hidden: true });
+      const button = el('button', { type: 'button', className: 'lg-button lg-button--primary' }, [
+        icon('copy'),
+        el('span', { text: 'Copy rows from last period' })
+      ]);
+
+      const callout = el('div', { className: 'lg lg-callout lg-tds-copy' }, [
+        icon('info', 'lg-callout__icon'),
+        el('div', { className: 'lg-callout__body' }, [
+          el('p', { className: 'lg-callout__title', text: 'No task rows yet' }),
+          el('p', { text: 'Copy the task and sub-task rows from your last pay period. You still enter the hours.' }),
+          source,
+          status,
+          results
+        ]),
+        button
+      ]);
+      anchor.parentNode.insertBefore(callout, anchor);
+
+      chrome.storage.local.get(TDS_HISTORY_KEY, function (data) {
+        const history = data[TDS_HISTORY_KEY] || {};
+        const previousKey = findPreviousPeriod(history, currentKey);
+        if (!previousKey) {
+          setText(source, 'LATS Go! hasn\'t seen an earlier TDS page yet. Open last period\'s TDS tab, then come back to this one.');
+          button.disabled = true;
+          return;
+        }
+        const rows = history[previousKey].rows;
+        const start = LG.parseDateKey(previousKey);
+        const label = start ? 'the period starting ' + shortDate(start) : 'your last TDS page';
+        setText(source, rows.length + (rows.length === 1 ? ' row' : ' rows') + ' from ' + label + '.');
+
+        button.addEventListener('click', function () {
+          copyRows(rows, button, status, results);
+        });
+      });
+    }
+
+    async function copyRows(rows, button, status, results) {
+      // Keep the callout while rows arrive, so its progress and results stay visible.
+      button.closest('.lg-tds-copy').dataset.used = 'true';
+      button.disabled = true;
+      results.hidden = true;
+      results.textContent = '';
+
+      const existing = readTdsRows().map(LG.tdsRowKey);
+      const queue = rows.filter(function (row, index) {
+        const key = LG.tdsRowKey(row);
+        const firstIndex = rows.findIndex(function (other) { return LG.tdsRowKey(other) === key; });
+        return firstIndex === index && existing.indexOf(key) === -1;
+      });
+
+      const problems = [];
+      let added = 0;
+      for (let i = 0; i < queue.length; i++) {
+        const row = queue[i];
+        setText(status, 'Adding row ' + (i + 1) + ' of ' + queue.length + ': ' + describeRow(row) + '…');
+        try {
+          const result = await LG.callPage('addTdsRow', bridgeRow(row), 60000);
+          if (result.status === 'added') added++;
+          else if (result.status === 'partial') {
+            added++;
+            problems.push(describeRow(row) + ': added the task, but ' + result.message);
+          } else {
+            problems.push(describeRow(row) + ': ' + result.message);
+          }
+        } catch (error) {
+          problems.push(describeRow(row) + ': ' + error.message);
+        }
+      }
+
+      const skipped = rows.length - queue.length;
+      let summary = 'Added ' + added + ' of ' + queue.length + (queue.length === 1 ? ' row.' : ' rows.');
+      if (skipped) summary += ' ' + skipped + ' already on this page.';
+      summary += problems.length ? ' Some rows need attention.' : ' Enter the hours, then select Save.';
+      setText(status, summary);
+
+      if (problems.length) {
+        problems.forEach(function (message) { results.appendChild(el('li', { text: message })); });
+        results.hidden = false;
+        button.disabled = false;
+        button.querySelector('span').textContent = 'Try again';
+      } else {
+        button.hidden = true;
+      }
+      refreshTds();
+    }
+
+    function ensureRemainingRow(tdsTable) {
+      let wrapper = document.querySelector('.lg-tds-remaining');
+      if (wrapper) return wrapper;
+      const clone = tdsTable.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.querySelectorAll('[id]').forEach(function (node) { node.removeAttribute('id'); });
+      clone.querySelectorAll('[data-mismatch], [data-match]').forEach(function (node) {
+        node.removeAttribute('data-mismatch');
+        node.removeAttribute('data-match');
+      });
+      const labelCell = clone.querySelector('td.leftColumn');
+      if (labelCell) {
+        labelCell.textContent = '';
+        labelCell.appendChild(el('span', { className: 'lg-tds-remaining__label', text: 'Remaining' }));
+        labelCell.title = 'Work Totals minus the hours entered. Updates as you type.';
+      }
+      LG.tdsDayCells(clone).forEach(function (cell) { cell.textContent = ''; });
+      const totalCell = clone.querySelector('td.lg-total-col');
+      if (totalCell) totalCell.setAttribute('data-role', 'summary');
+      wrapper = el('div', { className: 'lg-tds-remaining' }, [clone]);
+      tdsTable.parentNode.insertBefore(wrapper, tdsTable.nextSibling);
+      return wrapper;
+    }
+
+    /** TDS-2: live Remaining row and a running total for each row. */
+    function updateTdsRemaining() {
+      const tables = LG.tdsFooterTables();
+      if (tables.length < 2) return;
+      const work = LG.tdsDayCells(tables[1]).map(numberIn);
+      const entered = work.map(function () { return 0; });
+
+      document.querySelectorAll('input.distributionCell').forEach(function (input) {
+        const match = input.name.match(/Hours\[(\d+)\]/);
+        if (match && parseInt(match[1], 10) < entered.length) {
+          entered[parseInt(match[1], 10)] += parseFloat(input.value) || 0;
+        }
+      });
+
+      const remaining = LG.computeRemaining(work, entered);
+      const wrapper = ensureRemainingRow(tables[0]);
+      const cells = LG.tdsDayCells(wrapper.querySelector('table'));
+      let left = 0;
+      let over = 0;
+
+      remaining.forEach(function (value, i) {
+        const cell = cells[i];
+        if (!cell) return;
+        let state;
+        let main;
+        let note;
+        if (!work[i] && !entered[i]) {
+          state = 'none'; main = '–'; note = '';
+        } else if (value === 0) {
+          state = 'done'; main = '✓'; note = 'done';
+        } else if (value > 0) {
+          state = 'left'; main = LG.formatHours(value); note = 'left';
+          left += value;
+        } else {
+          state = 'over'; main = LG.formatHours(-value); note = 'over';
+          over -= value;
+        }
+        const signature = state + main;
+        if (cell.dataset.signature === signature) return;
+        cell.dataset.signature = signature;
+        cell.dataset.state = state;
+        cell.textContent = '';
+        cell.appendChild(el('span', { className: 'lg-tds-remaining__value', text: main }));
+        if (note) cell.appendChild(el('span', { className: 'lg-tds-remaining__note', text: note }));
+      });
+
+      let summary = wrapper.querySelector('[data-role="summary"]');
+      if (!summary) {
+        // No Total column yet (lats-restyle.js adds it): show the summary under the label.
+        const label = wrapper.querySelector('td.leftColumn');
+        summary = label && el('span', { className: 'lg-tds-remaining__summary', 'data-role': 'summary' });
+        if (summary) label.appendChild(summary);
+      }
+      if (summary) {
+        const parts = [];
+        if (left) parts.push(LG.formatHours(left) + ' left');
+        if (over) parts.push(LG.formatHours(over) + ' over');
+        setText(summary, parts.length ? parts.join(', ') : 'All set');
+      }
+    }
+
+    /** Compare the saved TDS Totals with Work Totals and mark each footer cell. */
+    function highlightTdsMismatches() {
+      const tables = LG.tdsFooterTables();
+      if (tables.length < 2) return;
+      const tdsCells = LG.tdsDayCells(tables[0]);
+      const workCells = LG.tdsDayCells(tables[1]);
+      for (let i = 0; i < Math.min(tdsCells.length, workCells.length); i++) {
+        const tdsValue = numberIn(tdsCells[i]);
+        const workValue = numberIn(workCells[i]);
+        [tdsCells[i], workCells[i]].forEach(function (cell) {
+          LG.setFlag(cell, 'data-mismatch', workValue > 0 && tdsValue !== workValue);
+          LG.setFlag(cell, 'data-match', workValue > 0 && tdsValue === workValue);
+        });
+      }
+    }
+
+    let tdsRefreshTimer = null;
+
+    function refreshTds() {
+      clearTimeout(tdsRefreshTimer);
+      tdsRefreshTimer = setTimeout(function () {
+        updateTdsRemaining();
+        const rows = readTdsRows();
+        const copyCallout = document.querySelector('.lg-tds-copy');
+        if (rows.length) {
+          cacheTdsRows(tdsPeriodKey(), rows);
+          if (copyCallout && !copyCallout.dataset.used) copyCallout.remove();
+        }
+      }, 120);
+    }
+
+    function initTdsPage() {
+      highlightTdsMismatches();
+      updateTdsRemaining();
+
+      const rows = readTdsRows();
+      const key = tdsPeriodKey();
+      if (rows.length) cacheTdsRows(key, rows);
+      else insertCopyRowsCallout(key);
+
+      document.addEventListener('input', function (event) {
+        if (event.target.matches && event.target.matches('input.distributionCell')) updateTdsRemaining();
+      });
+      document.addEventListener('change', function (event) {
+        if (event.target.matches && event.target.matches('input.distributionCell')) {
+          updateTdsRemaining();
+          highlightTdsMismatches();
+        }
+      });
+
+      const distributionRows = document.getElementById('distributionRows');
+      if (distributionRows) {
+        // Ignore lats-restyle.js's row decorations and Total cells, which change as you type.
+        new MutationObserver(function (mutations) {
+          const external = mutations.some(function (mutation) { return !LG.isOwnMutation(mutation, '.lg-task, .lg-total-col'); });
+          if (external) refreshTds();
+        }).observe(distributionRows, { childList: true, subtree: true });
+      }
+
+      const footer = document.getElementById('tdsFooter');
+      if (footer) {
+        new MutationObserver(function (mutations) {
+          const external = mutations.some(function (mutation) { return !LG.isOwnMutation(mutation, '.lg-tds-remaining, .lg-total-col'); });
+          if (external) highlightTdsMismatches();
+        }).observe(footer, { childList: true, subtree: true, characterData: true });
+      }
+    }
+
+    // ========== INITIALIZATION ==========
+
+    LG.whenLatsReady(function () {
+      if (document.getElementById('timesheetTable')) initTimesheetPage();
+      if (document.getElementById('distributionRows') || document.getElementById('tdsFooter')) initTdsPage();
+    });
+  })();
 }
-
-// Add these utility functions near the top of the file
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.className = `lats-notification ${type}`;
-  notification.textContent = message;
-  document.body.appendChild(notification);
-
-  // Remove notification after 5 seconds
-  setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-in';
-    setTimeout(() => notification.remove(), 300);
-  }, 5000);
-}
-
-// Add notification animations
-const notificationStyles = document.createElement('style');
-notificationStyles.textContent = `
-  @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
-  }
-  @keyframes slideOut {
-    from { transform: translateX(0); }
-    to { transform: translateX(100%); }
-  }
-`;
-document.head.appendChild(notificationStyles);
-
-// Validation functions
-function validateHours(value) {
-  if (!value) return true; // Allow empty values
-  const hours = parseFloat(value);
-  return !isNaN(hours) && hours >= 0 && hours <= 7.5;
-}
-
-function validateTime(timeStr) {
-  if (!timeStr) return true; // Allow empty values
-  const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(?:AM|PM)$/i;
-  return timeRegex.test(timeStr);
-} 

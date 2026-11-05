@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "LATS GO! 🎉",
-  "version": "1.0.0",
-  "description": "Makes the NY State LATS interface a bit better with improved styling and time entry.",
+  "name": "LATS Go!",
+  "version": "1.2.0",
+  "description": "Makes the NY State LATS timesheet faster: fill your schedule, leave, and location in one step, and finish TDS with less math.",
+  "minimum_chrome_version": "111",
   "permissions": [
     "storage",
     "cookies"
@@ -10,26 +11,53 @@
   "host_permissions": [
     "*://*.lats.ny.gov/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  },
   "content_scripts": [
     {
-      "matches": ["*://*.lats.ny.gov/Default*"],
+      "matches": [
+        "*://*.lats.ny.gov/Default*"
+      ],
       "css": [
         "styles/nysds-tokens.css",
         "styles/default.css"
       ],
-      "js": ["scripts/default.js"]
+      "js": [
+        "scripts/default.js"
+      ]
     },
     {
-      "matches": ["*://*.lats.ny.gov/Time*"],
+      "matches": [
+        "*://*.lats.ny.gov/Time*"
+      ],
       "css": [
         "styles/nysds-tokens.css",
+        "styles/ui.css",
         "styles/content.css"
       ],
-      "js": ["scripts/content.js"]
+      "js": [
+        "scripts/shared/utils.js",
+        "scripts/lats-restyle.js",
+        "scripts/content.js"
+      ]
     },
     {
-      "matches": ["*://*.lats.ny.gov/error.aspx*"],
-      "js": ["scripts/error.js"],
+      "matches": [
+        "*://*.lats.ny.gov/Time*"
+      ],
+      "js": [
+        "scripts/page-bridge.js"
+      ],
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.lats.ny.gov/error.aspx*"
+      ],
+      "js": [
+        "scripts/error.js"
+      ],
       "css": [
         "styles/nysds-tokens.css",
         "styles/error.css"
@@ -41,6 +69,7 @@
   },
   "action": {
     "default_popup": "popup.html",
+    "default_title": "LATS Go!",
     "default_icon": {
       "16": "images/icon16.png",
       "32": "images/icon32.png",
@@ -55,4 +84,4 @@
     "128": "images/icon128.png"
   },
   "options_page": "options.html"
-} 
+}

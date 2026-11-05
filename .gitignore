@@ -1,1 +1,6 @@
 /.DS_Store
+node_modules/
+coverage/
+
+# Personal LATS and Outlook data. Keep these snippets local.
+.claude/skills/lats-catchup/snippets/
