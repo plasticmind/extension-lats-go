@@ -3,7 +3,7 @@
 This document defines the requirements for the next LATS Go! release. It's written so you can point a fresh Claude Code session at it and build from it without extra context.
 
 - **Released version:** 1.0.0 (Chrome Web Store).
-- **Working tree:** 1.2.0 in `manifest.json`, on the `release/1.2.0` branch. See [Status of the 1.2.0 work](#status-of-the-120-work).
+- **Working tree:** 1.2.0 in `manifest.json`, merged to `main` on November 5, 2026. See [Status of the 1.2.0 work](#status-of-the-120-work).
 - **Recommended target:** ship this release as 1.2.0, or fold the 1.1.0 work into it and ship it as 1.1.0.
 - **Last verified against live LATS:** November 5, 2026, on `time02.lats.ny.gov`, LATSnet 12.11.0.346.
 
@@ -37,8 +37,8 @@ These facts were verified in live use while catching up five overdue periods. Th
 | L5 | On a state holiday, LATS shows a "Holiday - MM/DD/YYYY" notice. On Save, it adds a Misc Leave row, "HOL - State Holiday," with 7.5 hours. The "Holiday" leave row is a separate holiday-leave balance, not the holiday itself. | The current "Holiday" day type writes to the wrong row. See `SCHED-6`. |
 | L6 | The TDS (Time Distribution) page needs the TDS Totals to equal Work Totals on every worked day. Leave days need no TDS hours. A mismatch blocks clean submission and shows "Click TDS tab to assign hours." | See the `TDS-*` requirements. |
 | L7 | LATS usually copies the previous period's TDS rows into a new period. It didn't for the first period that used the new task codes. | See `TDS-1`. |
-| L8 | TDS codes changed with pay period 2026-15 (10/8–10/21/2026). Periods before it offer only the old codes, such as ITS-3444 plus `DTO_ITS_` sub-tasks. Pay period 15 and later offer only the new categories from the "TDS Category and Task Guide" on SharePoint. LATS decides by period, not by date. | See `TDS-4`. |
-| L9 | Sub-task codes contain non-breaking spaces, such as "DTO_ITS_ChatNY PRE." | Normalize whitespace (`/\s+/g`) before matching. |
+| L8 | TDS codes changed with pay period 2026-15 (10/8–10/21/2026). Periods before it offer only the old codes: one legacy task with team-prefixed sub-tasks. Pay period 15 and later offer only the new categories from the "TDS Category and Task Guide" on SharePoint. LATS decides by period, not by date. | See `TDS-4`. |
+| L9 | Sub-task codes can contain non-breaking spaces between words, as in the made-up "SUB_DEMO_Alpha ONE." | Normalize whitespace (`/\s+/g`) before matching. |
 | L10 | The Submit button opens an in-page attestation dialog the first time in a session, and later submits may skip it. Delete actions use `kendo.confirm`, not native `confirm()`. | Never automate the attestation. |
 
 ## Status of the 1.1.0 work
@@ -140,7 +140,7 @@ On a TDS page with no distribution rows, show **Copy rows from last period**. Th
 Add a "Remaining" row under TDS Totals that shows Work Totals minus TDS Totals for each day. It updates as the user types, before Save. Give each row a running total.
 
 **TDS-3: Distribution presets (P2)**
-Users save a split as percentages across their TDS rows, such as "Click to Renew 50%, Design System 20%, Overhead 20%, A11y 10%." **Distribute** fills every worked day:
+Users save a split as percentages across their TDS rows, such as "Project A 50%, Project B 20%, Overhead 20%, Training 10%." **Distribute** fills every worked day:
 - Round to 0.5 hours with the largest-remainder method so each day sums exactly to Work Totals.
 - Leave days get no TDS hours.
 - Partial days scale down; for example, a 6.5-hour day gets 6.5 hours of TDS.
@@ -190,7 +190,7 @@ The underlying inputs keep their names and stay editable.
 
 **UI-4: TDS page restyle (P2)**
 Follow the team-timesheet reference:
-- Show each task row as a title ("Click to Renew") over a muted code line ("ITS-3886 · DTO_ITS_Click to Ren").
+- Show each task row as a title ("Sample Project") over a muted code line ("TST-1001 · SUB_DEMO_Beta Two").
 - Show day cells with "-" for zero, and add a row-total column on the right.
 - Mark mismatched days with an icon plus text, not just red.
 - Show the Browse and Search task picker as one compact "Add task" control.
