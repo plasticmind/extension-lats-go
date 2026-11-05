@@ -48,7 +48,7 @@
   /**
    * Find a dropdown item whose code field matches `wanted`. Exact matches win. Otherwise an item
    * whose code appears inside `wanted` wins, longest code first, so a category header like
-   * "ITS Overhead_HCD - Overhead" still finds the "ITS Overhead_HCD" item.
+   * "Agency Indirect_Team - Indirect" still finds the "Agency Indirect_Team" item.
    */
   function findItem(widget, wanted, codeField) {
     if (!widget || !wanted) return null;

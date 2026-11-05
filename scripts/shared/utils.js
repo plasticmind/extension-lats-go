@@ -620,7 +620,7 @@ const LatsGo = (function () {
 
   /**
    * LATS shows sub-task links as "{code} - {description}", such as
-   * "DTO_ITS_ChatNY PRE - ChatNY Engage rated product exploration".
+   * "SUB_DEMO_Alpha ONE - Sample sub-task description".
    */
   function parseSubTaskLabel(text) {
     return splitLabel(text, ' - ');
@@ -628,7 +628,7 @@ const LatsGo = (function () {
 
   /**
    * LATS shows a row's category as "{code}: {description}", such as
-   * "Labor: Agencywide Labor Category Code". The code matches the #Category item's CategoryCode.
+   * "Direct: Sample Direct Category Code". The code matches the #Category item's CategoryCode.
    */
   function parseCategoryLabel(text) {
     return splitLabel(text, ': ');

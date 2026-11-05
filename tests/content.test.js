@@ -284,8 +284,8 @@ describe('TDS helpers', () => {
   it('shows remaining hours per day and running row totals (TDS-2)', async () => {
     const work = [7.5, 7.5, 0, 0, 7.5];
     const rows = [
-      { category: 'ITS Overhead', taskCode: 'ITS-4039', subTask: '', hours: [7.5, 4] },
-      { category: 'Labor', taskCode: 'ITS-3886', subTask: 'DTO_ITS_Click to Ren', hours: [0, 2] }
+      { category: 'Agency Indirect', taskCode: 'TST-1002', subTask: '', hours: [7.5, 4] },
+      { category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Beta Two', hours: [0, 2] }
     ];
     const { window, document } = load(buildTdsHtml({ rows, work }), { url: tdsUrl });
     const remaining = await until(() => document.querySelector('.lg-tds-remaining'));
@@ -312,7 +312,7 @@ describe('TDS helpers', () => {
   });
 
   it('doesn\'t rewrite the cached rows while you type', async () => {
-    const rows = [{ category: 'Labor', taskCode: 'ITS-3886', subTask: '', hours: [1] }];
+    const rows = [{ category: 'Direct', taskCode: 'TST-1001', subTask: '', hours: [1] }];
     const { window, document, chrome } = load(buildTdsHtml({ rows, work: [7.5] }), { url: tdsUrl });
     await until(() => chrome.areas.local.tdsHistory);
     const writes = vi.spyOn(chrome.storage.local, 'set');
@@ -328,19 +328,19 @@ describe('TDS helpers', () => {
 
   it('remembers rows, then offers to copy them into an empty period (TDS-1)', async () => {
     const rows = [
-      { category: 'ITS Overhead', taskCode: 'ITS-4039', subTask: '' },
-      { category: 'Labor', taskCode: 'ITS-3886', subTask: 'DTO_ITS_Click to Ren' }
+      { category: 'Agency Indirect', taskCode: 'TST-1002', subTask: '' },
+      { category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Beta Two' }
     ];
     const first = load(buildTdsHtml({ start: '10/08/2026', rows, work: [7.5] }), { url: tdsUrl });
     await until(() => first.chrome.areas.local.tdsHistory);
     const history = first.chrome.areas.local.tdsHistory;
     expect(Object.keys(history)).toEqual(['2026-10-08']);
     expect(history['2026-10-08'].rows[1]).toMatchObject({
-      category: 'Labor',
-      categoryLabel: 'Labor Category Code',
-      taskCode: 'ITS-3886',
-      task: 'ITS-3886: Sample Task',
-      subTask: 'DTO_ITS_Click to Ren',
+      category: 'Direct',
+      categoryLabel: 'Direct Category Code',
+      taskCode: 'TST-1001',
+      task: 'TST-1001: Sample Task',
+      subTask: 'SUB_DEMO_Beta Two',
       subTaskLabel: 'Sample sub-task description'
     });
 
@@ -359,8 +359,8 @@ describe('TDS helpers', () => {
       '2026-10-08': {
         savedAt: 1,
         rows: [
-          { category: 'ITS Overhead', taskCode: 'ITS-4039', task: 'ITS-4039', subTask: '' },
-          { category: 'ITS Overhead_HCD', taskCode: 'ITS-3444', task: 'ITS-3444', subTask: 'DTO_ITS_HCD DesignSy' }
+          { category: 'Agency Indirect', taskCode: 'TST-1002', task: 'TST-1002', subTask: '' },
+          { category: 'Agency Indirect_Team', taskCode: 'TST-1003', task: 'TST-1003', subTask: 'SUB_DEMO_Gamma Three' }
         ]
       }
     };
@@ -375,10 +375,10 @@ describe('TDS helpers', () => {
       const request = JSON.parse(event.detail);
       requests.push(request);
       let result;
-      if (request.payload.taskCode === 'ITS-4039') {
+      if (request.payload.taskCode === 'TST-1002') {
         document.getElementById('distributionRows').insertAdjacentHTML('beforeend',
-          '<div class="distributionRow"><table class="tdsGrid"><tr><td colspan="15">Overhead: DTO Overhead Category Code</td></tr>' +
-          '<tr><td colspan="15">ITS-4039: Overhead (Total Hours: 0) <a href="javascript:tdsJS.DisplaySubTasks(200)">sub tasks</a></td></tr></table></div>');
+          '<div class="distributionRow"><table class="tdsGrid"><tr><td colspan="15">Indirect: Sample Indirect Category Code</td></tr>' +
+          '<tr><td colspan="15">TST-1002: Indirect (Total Hours: 0) <a href="javascript:tdsJS.DisplaySubTasks(200)">sub tasks</a></td></tr></table></div>');
         result = { status: 'added' };
       } else {
         result = { status: 'failed', message: 'its category isn\'t available for this period.' };
@@ -398,14 +398,14 @@ describe('TDS helpers', () => {
     await until(() => /Added 1 of 2 rows/.test(callout.textContent));
     expect(requests.map((r) => r.action)).toEqual(['addTdsRow', 'addTdsRow']);
     expect(requests[1].payload).toMatchObject({
-      categoryCode: 'ITS Overhead_HCD',
-      taskCode: 'ITS-3444',
-      subTaskCode: 'DTO_ITS_HCD DesignSy',
-      searchTerm: 'DTO_ITS_HCD'
+      categoryCode: 'Agency Indirect_Team',
+      taskCode: 'TST-1003',
+      subTaskCode: 'SUB_DEMO_Gamma Three',
+      searchTerm: 'SUB_DEMO_Gamma'
     });
     expect(document.contains(callout)).toBe(true);
     expect(callout.querySelector('li').textContent)
-      .toBe('ITS-3444 · DTO_ITS_HCD DesignSy: its category isn\'t available for this period.');
+      .toBe('TST-1003 · SUB_DEMO_Gamma Three: its category isn\'t available for this period.');
     expect(button.textContent).toBe('Try again');
   });
 
@@ -451,18 +451,18 @@ describe('LATS page restyle (UI-3, UI-4)', () => {
   });
 
   it('turns each TDS row into a title over a code line, read from LATS\'s hidden fields', async () => {
-    const html = buildTdsHtml({ rows: [{ category: 'Labor', taskCode: 'ITS-3886', subTask: 'DTO_ITS_Click to Ren', hours: [1] }], work: [7.5] })
+    const html = buildTdsHtml({ rows: [{ category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Beta Two', hours: [1] }], work: [7.5] })
       .replace('<table class="tdsGrid">',
-        '<input type="hidden" id="Distributions_0__CategoryCode" value="Labor">' +
-        '<input type="hidden" id="Distributions_0__TaskCode" value="ITS-3886">' +
+        '<input type="hidden" id="Distributions_0__CategoryCode" value="Direct">' +
+        '<input type="hidden" id="Distributions_0__TaskCode" value="TST-1001">' +
         '<input type="hidden" id="Distributions_0__TaskDescription" value="Application Development &amp; Implementation">' +
-        '<input type="hidden" id="Distributions_0__SubTask_0__Name" value="DTO_ITS_Click to Ren">' +
-        '<input type="hidden" id="Distributions_0__SubTask_0__Description" value="Click to Renew Process Development">' +
+        '<input type="hidden" id="Distributions_0__SubTask_0__Name" value="SUB_DEMO_Beta Two">' +
+        '<input type="hidden" id="Distributions_0__SubTask_0__Description" value="Sample Project Development">' +
         '<table class="tdsGrid">');
     const { document } = load(html, { url: 'https://time02.lats.ny.gov/TimeDistribution?tshdrid=1' });
     const task = await until(() => document.querySelector('.lg-task'));
-    expect(task.querySelector('.lg-task__title').textContent).toBe('Click to Renew Process Development');
-    expect(task.querySelector('.lg-task__meta').textContent).toBe('ITS-3886 · DTO_ITS_Click to Ren · Labor');
+    expect(task.querySelector('.lg-task__title').textContent).toBe('Sample Project Development');
+    expect(task.querySelector('.lg-task__meta').textContent).toBe('TST-1001 · SUB_DEMO_Beta Two · Direct');
     expect(task.querySelector('.lg-task__action').textContent).toBe('Change sub-task');
     expect(task.querySelector('.lg-task__delete').textContent).toBe('Delete');
     expect(document.querySelector('#gridHeader table').hasAttribute('data-lg-cols')).toBe(true);
@@ -486,7 +486,7 @@ describe('LATS page restyle (UI-3, UI-4)', () => {
   });
 
   it('marks TDS weekend cells by input title, even when cells don\'t line up with the header', async () => {
-    const html = buildTdsHtml({ rows: [{ category: 'Labor', taskCode: 'ITS-3886', subTask: 'DTO_ITS_ChatNY PRE', hours: [] }], work: [7.5] })
+    const html = buildTdsHtml({ rows: [{ category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE', hours: [] }], work: [7.5] })
       // Rows with sub-tasks can carry an extra cell before the days.
       .replace(/(<a class="deleteLinkHref" href="#">Delete<\/a><\/td>)/, '$1<td style="display:none"></td>')
       .replace(/name="Distributions\[0\]\.Hours\[(\d+)\]"/g, (m, d) => m + ' title="Task Hours For Day ' + (+d + 1) + ' ' +

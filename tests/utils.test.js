@@ -190,23 +190,23 @@ describe('page text parsing', () => {
 
 describe('TDS helpers', () => {
   it('normalizes non-breaking spaces (L9)', () => {
-    expect(LG.normalizeSpace('DTO_ITS_ChatNY PRE ')).toBe('DTO_ITS_ChatNY PRE');
-    expect(LG.tdsRowKey({ taskCode: 'ITS-3886', subTask: 'DTO_ITS_ChatNY PRE' }))
-      .toBe(LG.tdsRowKey({ taskCode: 'ITS-3886', subTask: 'DTO_ITS_ChatNY PRE' }));
+    expect(LG.normalizeSpace('SUB_DEMO_Alpha ONE ')).toBe('SUB_DEMO_Alpha ONE');
+    expect(LG.tdsRowKey({ taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE' }))
+      .toBe(LG.tdsRowKey({ taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE' }));
   });
 
   it('splits LATS labels into codes and descriptions', () => {
-    expect(LG.parseSubTaskLabel('DTO_ITS_ChatNY\u00a0PRE - ChatNY Engage rated product exploration'))
-      .toEqual({ code: 'DTO_ITS_ChatNY PRE', label: 'ChatNY Engage rated product exploration' });
-    expect(LG.parseCategoryLabel('Labor: Agencywide Labor Category Code'))
-      .toEqual({ code: 'Labor', label: 'Agencywide Labor Category Code' });
-    expect(LG.parseCategoryLabel('Overhead')).toEqual({ code: 'Overhead', label: '' });
-    expect(LG.tdsRowKey({ taskCode: 'ITS-3886', subTask: 'DTO_ITS_ChatNY PRE - ChatNY Engage' }))
-      .toBe(LG.tdsRowKey({ taskCode: 'ITS-3886', subTask: 'DTO_ITS_ChatNY PRE' }));
+    expect(LG.parseSubTaskLabel('SUB_DEMO_Alpha\u00a0ONE - Sample sub-task description'))
+      .toEqual({ code: 'SUB_DEMO_Alpha ONE', label: 'Sample sub-task description' });
+    expect(LG.parseCategoryLabel('Direct: Sample Direct Category Code'))
+      .toEqual({ code: 'Direct', label: 'Sample Direct Category Code' });
+    expect(LG.parseCategoryLabel('Indirect')).toEqual({ code: 'Indirect', label: '' });
+    expect(LG.tdsRowKey({ taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE - Sample sub-task' }))
+      .toBe(LG.tdsRowKey({ taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE' }));
   });
 
   it('builds a sub-task search term of at least 3 characters', () => {
-    expect(LG.subTaskSearchTerm('DTO_ITS_Click to Ren')).toBe('DTO_ITS_Click');
+    expect(LG.subTaskSearchTerm('SUB_DEMO_Beta Two')).toBe('SUB_DEMO_Beta');
     expect(LG.subTaskSearchTerm('AB CD')).toBe('AB CD');
   });
 

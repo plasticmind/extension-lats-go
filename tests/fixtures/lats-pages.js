@@ -4,8 +4,8 @@
  * These approximate the LATS markup the extension depends on: input titles such as
  * "Day In Day 1 Thursday", #timesheetTable, #btnSaveTimesheet_0, the period header, the
  * holiday notice, and the TDS footer tables. TDS row labels follow the formats seen on live
- * LATS on 11/5/2026: "Labor: Agencywide Labor Category Code" and
- * "DTO_ITS_ChatNY PRE - ChatNY Engage rated product exploration". They are NOT captured from LATS. Replace them
+ * LATS on 11/5/2026: "Direct: Sample Direct Category Code" and
+ * "SUB_DEMO_Alpha ONE - Sample sub-task description". They are NOT captured from LATS. Replace them
  * with sanitized snapshots of real pages when you have them (see docs/requirements).
  */
 
