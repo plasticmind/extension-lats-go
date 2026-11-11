@@ -1,84 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { JSDOM } from 'jsdom';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { buildTimesheetHtml, buildTdsHtml } from './fixtures/lats-pages.js';
-
-const root = fileURLToPath(new URL('..', import.meta.url));
-// Same order as the manifest: utils.js, lats-restyle.js, then content.js.
-const SCRIPT = ['scripts/shared/utils.js', 'scripts/lats-restyle.js', 'scripts/content.js']
-  .map((file) => readFileSync(root + file, 'utf8')).join('\n');
-
-function clone(value) {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-}
-
-function chromeStub(sync = {}, local = {}) {
-  const areas = { sync: clone(sync), local: clone(local) };
-  const listeners = [];
-  const area = (name) => ({
-    get(keys, callback) {
-      let result = {};
-      if (keys === null || keys === undefined) result = clone(areas[name]);
-      else (Array.isArray(keys) ? keys : [keys]).forEach((key) => {
-        if (areas[name][key] !== undefined) result[key] = clone(areas[name][key]);
-      });
-      setTimeout(() => callback(result), 0);
-    },
-    set(items, callback) {
-      Object.assign(areas[name], clone(items));
-      listeners.forEach((listener) => listener({}, name));
-      if (callback) setTimeout(callback, 0);
-    },
-    remove(keys, callback) {
-      (Array.isArray(keys) ? keys : [keys]).forEach((key) => { delete areas[name][key]; });
-      if (callback) setTimeout(callback, 0);
-    }
-  });
-  return {
-    areas,
-    storage: { sync: area('sync'), local: area('local'), onChanged: { addListener: (fn) => listeners.push(fn) } },
-    runtime: { sendMessage: vi.fn(), openOptionsPage: vi.fn() }
-  };
-}
-
-function load(html, { sync, local, url = 'https://time02.lats.ny.gov/Timesheet' } = {}) {
-  const dom = new JSDOM(`<!DOCTYPE html><html><body>${html}</body></html>`, {
-    url,
-    runScripts: 'outside-only',
-    pretendToBeVisual: true
-  });
-  const { window } = dom;
-  Object.defineProperty(window.HTMLElement.prototype, 'innerText', {
-    get() { return this.textContent; },
-    configurable: true
-  });
-  window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
-  window.HTMLDialogElement.prototype.close = function () {
-    if (!this.hasAttribute('open')) return;
-    this.removeAttribute('open');
-    this.dispatchEvent(new window.Event('close'));
-  };
-  Object.defineProperty(window.HTMLDialogElement.prototype, 'open', {
-    get() { return this.hasAttribute('open'); },
-    configurable: true
-  });
-  const chrome = chromeStub(sync, local);
-  window.chrome = chrome;
-  window.eval(SCRIPT);
-  return { window, document: window.document, chrome };
-}
-
-async function until(check, timeout = 15000) {
-  const end = Date.now() + timeout;
-  while (Date.now() < end) {
-    const value = check();
-    if (value) return value;
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  throw new Error('Timed out waiting for condition');
-}
+import { buildTimesheetHtml, buildTdsHtml, holidayNotice } from './fixtures/lats-pages.js';
+import { loadPage, until, wait, TDS_URL } from './fixtures/harness.js';
 
 function field(document, title) {
   const input = Array.from(document.querySelectorAll('#timesheetTable input')).find((el) => el.title === title);
@@ -114,7 +37,7 @@ async function applyAndWait(document, dialog) {
 
 describe('Fill Timecard', () => {
   it('labels the button "Fill Timecard" with a decorative sparkle', async () => {
-    const { document } = load(buildTimesheetHtml());
+    const { document } = loadPage(buildTimesheetHtml());
     const button = await until(() => document.getElementById('fillTimecard'));
     expect(button.textContent).toBe('\u2728Fill Timecard');
     expect(button.querySelector('.lg-sparkle').getAttribute('aria-hidden')).toBe('true');
@@ -129,7 +52,7 @@ describe('Fill Timecard', () => {
       week.wed.location = 'onsite';
       week.thu.location = 'onsite';
     });
-    const { window, document } = load(buildTimesheetHtml({ holidays: ['10/12/2026'] }), { sync });
+    const { window, document } = loadPage(buildTimesheetHtml({ holidays: ['10/12/2026'] }), { sync });
     const dialog = await openDialog(document);
 
     expect(dialog.querySelectorAll('tr[data-index]')).toHaveLength(14);
@@ -174,7 +97,7 @@ describe('Fill Timecard', () => {
   }, 30000);
 
   it('shows progress while filling, then celebrates (and skips confetti with reduced motion)', async () => {
-    const { document } = load(buildTimesheetHtml());
+    const { document } = loadPage(buildTimesheetHtml());
     const dialog = await openDialog(document);
     dialog.querySelector('[data-action="apply"]').click();
     const bar = await until(() => document.querySelector('.lg-toast [role="progressbar"]'));
@@ -185,7 +108,7 @@ describe('Fill Timecard', () => {
     expect(document.querySelectorAll('.lg-confetti .lg-confetti__piece').length).toBeGreaterThan(20);
     expect(document.getElementById('fillTimecard').disabled).toBe(false);
 
-    const calm = load(buildTimesheetHtml());
+    const calm = loadPage(buildTimesheetHtml());
     calm.window.matchMedia = () => ({ matches: true });
     const calmDialog = await openDialog(calm.document);
     await applyAndWait(calm.document, calmDialog);
@@ -198,7 +121,7 @@ describe('Fill Timecard', () => {
       week.mon.works = false;
       week.sat.works = true;
     });
-    const { document } = load(buildTimesheetHtml(), { sync });
+    const { document } = loadPage(buildTimesheetHtml(), { sync });
     const dialog = await openDialog(document);
     await applyAndWait(document, dialog);
 
@@ -208,7 +131,7 @@ describe('Fill Timecard', () => {
   }, 30000);
 
   it('clears both location boxes and every Extra row on a full leave day', async () => {
-    const { window, document } = load(buildTimesheetHtml());
+    const { window, document } = loadPage(buildTimesheetHtml());
     field(document, 'On-Site Day 1 Thursday').checked = true;
     field(document, 'Day In Day 1 Thursday').value = '9:00 AM';
     const extras = () => Array.from(document.querySelectorAll('#timesheetTable input'))
@@ -231,7 +154,7 @@ describe('Fill Timecard', () => {
   }, 30000);
 
   it('migrates version 1 settings and fills with them', async () => {
-    const { document, chrome } = load(buildTimesheetHtml(), {
+    const { document, chrome } = loadPage(buildTimesheetHtml(), {
       sync: { alternateSchedule: false, week1: { timeIn: '7:00 AM', lunchOut: '11:30 AM', lunchIn: '12:00 PM', timeOut: '3:00 PM' } }
     });
     const dialog = await openDialog(document);
@@ -243,7 +166,7 @@ describe('Fill Timecard', () => {
   }, 30000);
 
   it('blocks Apply when leave hours are out of range', async () => {
-    const { window, document } = load(buildTimesheetHtml());
+    const { window, document } = loadPage(buildTimesheetHtml());
     const dialog = await openDialog(document);
     const thursday = rowFor(dialog, 1);
     const type = thursday.querySelector('select');
@@ -264,30 +187,28 @@ describe('Fill Timecard', () => {
 
 describe('Locked periods (FLOW-1)', () => {
   it('explains a locked period in place of Fill Timecard', async () => {
-    const { document } = load(buildTimesheetHtml({ locked: true, status: 'New' }));
-    const callout = await until(() => document.querySelector('.lg-locked-callout'), 5000);
+    const { document } = loadPage(buildTimesheetHtml({ locked: true, status: 'New' }));
+    const callout = await until(() => document.querySelector('.lg-locked-callout'), { timeout: 5000 });
     expect(callout.textContent).toContain('LATS unlocks this period after you submit earlier timesheets.');
     expect(callout.querySelector('button').textContent).toBe('Open oldest overdue');
     expect(document.getElementById('fillTimecard')).toBeNull();
   });
 
   it('stays quiet on a submitted period', async () => {
-    const { document } = load(buildTimesheetHtml({ locked: true, status: 'Submitted' }));
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    const { document } = loadPage(buildTimesheetHtml({ locked: true, status: 'Submitted' }));
+    await wait(2500);
     expect(document.querySelector('.lg-locked-callout')).toBeNull();
   });
 });
 
 describe('TDS helpers', () => {
-  const tdsUrl = 'https://time02.lats.ny.gov/TimeDistribution?tshdrid=123';
-
   it('shows remaining hours per day and running row totals (TDS-2)', async () => {
     const work = [7.5, 7.5, 0, 0, 7.5];
     const rows = [
       { category: 'Agency Indirect', taskCode: 'TST-1002', subTask: '', hours: [7.5, 4] },
       { category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Beta Two', hours: [0, 2] }
     ];
-    const { window, document } = load(buildTdsHtml({ rows, work }), { url: tdsUrl });
+    const { window, document } = loadPage(buildTdsHtml({ rows, work }), { url: TDS_URL });
     const remaining = await until(() => document.querySelector('.lg-tds-remaining'));
     const cells = Array.from(remaining.querySelectorAll('td:not(.leftColumn)'));
 
@@ -313,7 +234,7 @@ describe('TDS helpers', () => {
 
   it('doesn\'t rewrite the cached rows while you type', async () => {
     const rows = [{ category: 'Direct', taskCode: 'TST-1001', subTask: '', hours: [1] }];
-    const { window, document, chrome } = load(buildTdsHtml({ rows, work: [7.5] }), { url: tdsUrl });
+    const { window, document, chrome } = loadPage(buildTdsHtml({ rows, work: [7.5] }), { url: TDS_URL });
     await until(() => chrome.areas.local.tdsHistory);
     const writes = vi.spyOn(chrome.storage.local, 'set');
 
@@ -322,7 +243,7 @@ describe('TDS helpers', () => {
     input.value = '3';
     input.dispatchEvent(new window.Event('input', { bubbles: true }));
     expect(document.querySelector('.distributionRow td.lg-total-col').textContent).toBe('4');
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await wait(300);
     expect(writes).not.toHaveBeenCalled();
   });
 
@@ -331,7 +252,8 @@ describe('TDS helpers', () => {
       { category: 'Agency Indirect', taskCode: 'TST-1002', subTask: '' },
       { category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Beta Two' }
     ];
-    const first = load(buildTdsHtml({ start: '10/08/2026', rows, work: [7.5] }), { url: tdsUrl });
+    // Without LATS's hidden fields, LATS Go! reads the codes and labels from the row's text.
+    const first = loadPage(buildTdsHtml({ start: '10/08/2026', rows, work: [7.5], hiddenFields: false }), { url: TDS_URL });
     await until(() => first.chrome.areas.local.tdsHistory);
     const history = first.chrome.areas.local.tdsHistory;
     expect(Object.keys(history)).toEqual(['2026-10-08']);
@@ -344,8 +266,8 @@ describe('TDS helpers', () => {
       subTaskLabel: 'Sample sub-task description'
     });
 
-    const { document } = load(buildTdsHtml({ start: '10/22/2026', rows: [], work: [7.5] }), {
-      url: tdsUrl,
+    const { document } = loadPage(buildTdsHtml({ start: '10/22/2026', rows: [], work: [7.5] }), {
+      url: TDS_URL,
       local: { tdsHistory: history }
     });
     const callout = await until(() => document.querySelector('.lg-tds-copy'));
@@ -364,8 +286,8 @@ describe('TDS helpers', () => {
         ]
       }
     };
-    const { window, document } = load(buildTdsHtml({ start: '10/22/2026', rows: [], work: [7.5] }), {
-      url: tdsUrl,
+    const { window, document } = loadPage(buildTdsHtml({ start: '10/22/2026', rows: [], work: [7.5] }), {
+      url: TDS_URL,
       local: { tdsHistory: history }
     });
 
@@ -410,7 +332,7 @@ describe('TDS helpers', () => {
   });
 
   it('explains when no earlier TDS page has been seen', async () => {
-    const { document } = load(buildTdsHtml({ rows: [], work: [7.5] }), { url: tdsUrl });
+    const { document } = loadPage(buildTdsHtml({ rows: [], work: [7.5] }), { url: TDS_URL });
     const callout = await until(() => document.querySelector('.lg-tds-copy'));
     await until(() => /hasn't seen/.test(callout.textContent));
     expect(callout.querySelector('button').disabled).toBe(true);
@@ -419,7 +341,7 @@ describe('TDS helpers', () => {
 
 describe('LATS page restyle (UI-3, UI-4)', () => {
   it('shows weekday-over-date headers, tags the state holiday, and collapses empty leave rows', async () => {
-    const { document } = load(buildTimesheetHtml({ holidays: ['10/12/2026'] }));
+    const { document } = loadPage(buildTimesheetHtml({ holidays: ['10/12/2026'] }));
     const heads = await until(() => {
       const found = document.querySelectorAll('#timesheetTable .lg-dayhead');
       return found.length ? found : null;
@@ -435,41 +357,41 @@ describe('LATS page restyle (UI-3, UI-4)', () => {
     expect(vacation.getAttribute('data-has-values')).toBe('false');
     expect(document.documentElement.classList.contains('lg-restyled')).toBe(true);
 
-    // The Leave button lives in LATS's existing corner cell. No rows or cells are added.
+    // The Empty rows button lives in LATS's existing corner cell. No rows or cells are added.
     const table = document.getElementById('timesheetTable');
     expect(Array.from(table.rows).map((row) => row.cells.length).filter((n) => n !== 15)).toEqual([]);
-    const button = table.rows[0].cells[0].querySelector('.lg-leave-button');
+    const button = table.rows[0].cells[0].querySelector('.lg-empty-rows-button');
     expect(button.getAttribute('aria-expanded')).toBe('false');
-    expect(button.textContent).toBe('Leave (6)');
+    expect(button.textContent).toBe('Empty rows (6)');
     button.click();
-    expect(document.documentElement.classList.contains('lg-show-empty-leave')).toBe(true);
-    expect(button.textContent).toBe('Leave');
-    expect(button.getAttribute('aria-label')).toBe('Hide empty leave rows');
+    expect(document.documentElement.classList.contains('lg-show-empty-rows')).toBe(true);
+    expect(button.textContent).toBe('Empty rows');
+    expect(button.title).toBe('Hide empty rows');
 
-    // No HOL row yet, so the holiday notice explains that LATS adds it on Save.
-    expect(document.querySelector('.lg-holiday-note').textContent).toContain('when you save');
+    // No HOL row yet, so the holiday alert explains that LATS adds it on Save.
+    expect(document.querySelector('.lg-holiday-alert [data-role="note"]').textContent).toContain('when you save');
   });
 
   it('turns each TDS row into a title over a code line, read from LATS\'s hidden fields', async () => {
-    const html = buildTdsHtml({ rows: [{ category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Beta Two', hours: [1] }], work: [7.5] })
-      .replace('<table class="tdsGrid">',
-        '<input type="hidden" id="Distributions_0__CategoryCode" value="Direct">' +
-        '<input type="hidden" id="Distributions_0__TaskCode" value="TST-1001">' +
-        '<input type="hidden" id="Distributions_0__TaskDescription" value="Application Development &amp; Implementation">' +
-        '<input type="hidden" id="Distributions_0__SubTask_0__Name" value="SUB_DEMO_Beta Two">' +
-        '<input type="hidden" id="Distributions_0__SubTask_0__Description" value="Sample Project Development">' +
-        '<table class="tdsGrid">');
-    const { document } = load(html, { url: 'https://time02.lats.ny.gov/TimeDistribution?tshdrid=1' });
+    const rows = [{
+      category: 'Direct',
+      taskCode: 'TST-1001',
+      description: 'Application Development & Implementation',
+      subTask: 'SUB_DEMO_Beta Two',
+      subTaskDescription: 'Sample Project Development',
+      hours: [1]
+    }];
+    const { document } = loadPage(buildTdsHtml({ rows, work: [7.5] }), { url: TDS_URL });
     const task = await until(() => document.querySelector('.lg-task'));
     expect(task.querySelector('.lg-task__title').textContent).toBe('Sample Project Development');
     expect(task.querySelector('.lg-task__meta').textContent).toBe('TST-1001 · SUB_DEMO_Beta Two · Direct');
     expect(task.querySelector('.lg-task__action').textContent).toBe('Change sub-task');
     expect(task.querySelector('.lg-task__delete').textContent).toBe('Delete');
-    expect(document.querySelector('#gridHeader table').hasAttribute('data-lg-cols')).toBe(true);
+    expect(document.querySelector('#gridHeader table').classList.contains('lg-cols')).toBe(true);
   });
 
   it('puts its decorations back after LATS rebuilds grid rows', async () => {
-    const { document } = load(buildTimesheetHtml());
+    const { document } = loadPage(buildTimesheetHtml());
     const table = document.getElementById('timesheetTable');
     await until(() => table.querySelector('tr[data-lg-row="Vacation"]'));
 
@@ -486,12 +408,9 @@ describe('LATS page restyle (UI-3, UI-4)', () => {
   });
 
   it('marks TDS weekend cells by input title, even when cells don\'t line up with the header', async () => {
-    const html = buildTdsHtml({ rows: [{ category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE', hours: [] }], work: [7.5] })
-      // Rows with sub-tasks can carry an extra cell before the days.
-      .replace(/(<a class="deleteLinkHref" href="#">Delete<\/a><\/td>)/, '$1<td style="display:none"></td>')
-      .replace(/name="Distributions\[0\]\.Hours\[(\d+)\]"/g, (m, d) => m + ' title="Task Hours For Day ' + (+d + 1) + ' ' +
-        ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'][d % 7] + '"');
-    const { document } = load(html, { url: 'https://time02.lats.ny.gov/TimeDistribution?tshdrid=1' });
+    // Rows with sub-tasks can carry an extra cell before the days.
+    const rows = [{ category: 'Direct', taskCode: 'TST-1001', subTask: 'SUB_DEMO_Alpha ONE', hours: [], hiddenCell: true }];
+    const { document } = loadPage(buildTdsHtml({ rows, work: [7.5] }), { url: TDS_URL });
     await until(() => document.querySelector('.lg-task'));
     const marked = Array.from(document.querySelectorAll('.distributionRow td[data-weekend] input.distributionCell'))
       .map((input) => input.title.replace('Task Hours For ', ''));
@@ -511,14 +430,14 @@ describe('LATS page restyle (UI-3, UI-4)', () => {
   });
 
   it('tags the holiday when LATS writes its notice after load', async () => {
-    const { document } = load(buildTimesheetHtml());
+    const { document } = loadPage(buildTimesheetHtml());
     const monday = await until(() => document.querySelectorAll('#timesheetTable .lg-dayhead')[4]);
     expect(monday.textContent).toBe('MonOct 12');
 
-    document.getElementById('topLeftMessages').insertAdjacentHTML('beforeend', '<div class="k-label">Holiday - 10/12/2026</div>');
+    document.getElementById('topLeftMessages').insertAdjacentHTML('beforeend', holidayNotice('10/12/2026'));
     await until(() => monday.querySelector('.lg-dayhead__tag'));
     expect(monday.closest('th').getAttribute('data-holiday')).toBe('true');
-    await until(() => document.querySelector('.lg-holiday-note'));
+    await until(() => document.querySelector('.lg-holiday-alert'));
     expect(document.querySelector('#Vacation_rowLabelLeft').closest('tr').cells[5].getAttribute('data-holiday')).toBe('true');
   });
 });

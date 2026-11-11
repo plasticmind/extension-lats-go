@@ -3,9 +3,9 @@
 This document defines the requirements for the next LATS Go! release. It's written so you can point a fresh Claude Code session at it and build from it without extra context.
 
 - **Released version:** 1.0.0 (Chrome Web Store).
-- **Working tree:** 1.2.0 in `manifest.json`, merged to `main` on November 5, 2026. See [Status of the 1.2.0 work](#status-of-the-120-work).
-- **Recommended target:** ship this release as 1.2.0, or fold the 1.1.0 work into it and ship it as 1.1.0.
-- **Last verified against live LATS:** November 5, 2026, on `time02.lats.ny.gov`, LATSnet 12.11.0.346.
+- **Working tree:** 1.3.0 in `manifest.json`. That's the 1.2.0 work, merged to `main` on November 5, 2026, plus the team feedback round of November 11, 2026. See [Status of the 1.2.0 work](#status-of-the-120-work) and [Status of the team feedback round](#status-of-the-team-feedback-round).
+- **Recommended target:** ship this release as 1.3.0 after the [live checks](#live-checks-still-owed) pass.
+- **Last verified against live LATS:** November 5, 2026, on `time02.lats.ny.gov`, LATSnet 12.11.0.346. The team feedback round isn't verified on live LATS yet.
 
 ## How to use this document
 
@@ -26,7 +26,7 @@ This document defines the requirements for the next LATS Go! release. It's writt
 
 ## How LATS behaves
 
-These facts were verified in live use while catching up five overdue periods. The extension must handle each one.
+L1 through L10 were verified in live use while catching up five overdue periods. L11 comes from the team's feedback, and its details still need a live check. The extension must handle each one.
 
 | # | Behavior | Impact on the extension |
 |---|---|---|
@@ -40,6 +40,7 @@ These facts were verified in live use while catching up five overdue periods. Th
 | L8 | TDS codes changed with pay period 2026-15 (10/8–10/21/2026). Periods before it offer only the old codes: one legacy task with team-prefixed sub-tasks. Pay period 15 and later offer only the new categories from the "TDS Category and Task Guide" on SharePoint. LATS decides by period, not by date. | See `TDS-4`. |
 | L9 | Sub-task codes can contain non-breaking spaces between words, as in the made-up "SUB_DEMO_Alpha ONE." | Normalize whitespace (`/\s+/g`) before matching. |
 | L10 | The Submit button opens an in-page attestation dialog the first time in a session, and later submits may skip it. Delete actions use `kendo.confirm`, not native `confirm()`. | Never automate the attestation. |
+| L11 | After a sub-task change, LATS re-renders the TDS grid (the day header, task rows, and footer) without reloading the page. It's not yet confirmed whether LATS replaces the rows or edits them in place, or whether `#topLeftMessages` re-renders too. | Decorations and the Remaining row are lost, and observers on the old nodes stop firing. Re-apply everything through `LatsGo.onLatsChange`. See `UI-4` and [live check 1](#live-checks-still-owed). |
 
 ## Status of the 1.1.0 work
 
@@ -58,7 +59,7 @@ These items appear in `docs/design-refs/v1.1-feature-summary.png`. This table sh
 The P1 requirements were built on November 5, 2026, and `manifest.json` is now 1.2.0. The jsdom tests run the real content script against synthetic pages in `tests/fixtures/`.
 
 Later that day, a live check on pay period 17 (11/5–11/18/2026) filled and inspected the timesheet and TDS pages without saving, then reloaded to discard. It confirmed the following:
-- **Timesheet:** the day headers, the Holiday tag on 11/11, the Total column, the Leave toggle, and the status pill.
+- **Timesheet:** the day headers, the Holiday tag on 11/11, the Total column, the Leave toggle (now the Empty rows toggle), and the status pill.
 - **Fill Timecard:** the dialog skipped the state holiday and filled 1 hour of partial sick leave. The progress toast, the glow, and the confetti all appeared.
 - **TDS:** the row titles, the weekend shading, the mismatch colors, the live Remaining row, and the Change sub-task button.
 
@@ -76,6 +77,36 @@ The check also found two CSS bugs, now fixed. The TDS state colors (weekend, mis
 The UI-3 and UI-4 restyles, plus the FLOW-3 status pill, were also built on November 5, 2026, by previewing CSS on live LATS (pay period 17) without saving. Their DOM hooks live in `scripts/lats-restyle.js`. A live check also found two facts that the extension now handles: TDS sub-task links read "{code} - {description}", and each row carries hidden fields with clean category, task, and sub-task codes.
 
 Open question 2 was resolved as SCHED-1 describes: one per-weekday schedule, with an optional second week.
+
+## Status of the team feedback round
+
+On November 11, 2026, the team reviewed 1.2.0 and asked for the following changes. Each one is built and covered by jsdom tests. None is checked on live LATS yet, because the LATS sign-in had expired. Run the [live checks](#live-checks-still-owed) before you ship.
+
+| Item | Change |
+|---|---|
+| Total column (`UI-3`) | The grid no longer shows durations such as "7h 30m", in the Total Time row or the Total column. It shows LATS's decimals only. The Fill dialog and settings page still show durations. |
+| Empty rows (`UI-3`) | Hours rows that are empty or zero on every day hide behind an **Empty rows (N)** toggle in the grid corner, which replaces the Leave toggle. Hours rows are the known leave rows, plus any other row that fits a structural rule, such as Earned NonComp and Overtime. Time, location, totals, header, and Misc Leave rows never hide. The toggle's tooltip names up to three hidden rows. |
+| Panel tables (`UI-3`) | Work Totals, Leave Usage by Day, and Balances and Earnings get uniform 1px borders and a rule under every row. |
+| Tab order (`UI-3`) | The Timesheet and TDS tabs move to the front of the top tab bar. The script moves the tabs themselves, so keyboard focus order matches. It skips in-page tab bars, such as the TDS task picker. |
+| Tab style (`UI-3`) | The top tabs follow NYSDS nys-tab. The sub-tab bar (Audit, Summary, and so on) stays a quiet toolbar. |
+| Summary labels (`UI-4`) | Labels use a minimum width instead of a fixed one, so long TDS labels such as "TDS Timesheet Status" no longer clip. On the TDS page, each status pill wraps under its label at narrower widths. |
+| Alerts | LATS Go!'s alerts and callouts share one nys-alert style, with info and danger types. |
+| Holiday alert (`UI-3`) | The Holiday badge above the grid becomes an info alert on both pages, "State holiday reminder," with a link to the Department of Civil Service holiday calendar for that year. On the timesheet, it says that LATS adds the HOL hours on Save, until LATS adds the HOL Misc Leave row. LATS's notices stay on the page, visually hidden, because Fill Timecard reads holidays from the page text. |
+| Warning banners (`UI-3`) | LATS's missing-time and TDS mismatch banners look like nys-alert warnings, with space above and below. Screen readers still read LATS's own sentence once. The banners stay hidden on the TDS page. |
+| TDS re-render (`UI-4`, L11) | After a sub-task change, the row titles, Total column, weekend shading, Remaining row, mismatch marks, and `tdsHistory` cache all come back. |
+
+### Live checks still owed
+
+Check these on a real unsubmitted period without saving, most important first:
+
+1. **TDS sub-task change.** Change a sub-task, and don't save. The grid comes back fully styled, with one Remaining row, and `tdsHistory` updates. Note whether LATS replaces the rows or edits them in place, and whether `#topLeftMessages` re-renders (L11).
+2. **Timesheet hidden rows.** Every row that hid before still hides. On an account that has them, empty Earned NonComp and Overtime rows hide. No row that should show is hidden.
+3. **Fill Timecard on a holiday period.** It still skips the holiday (`SCHED-6`) now that LATS's notices are visually hidden.
+4. **Top tabs.** Check the order and style on the Timesheet and TDS pages, and on a supervisor's account with Approval List. Pages outside `/Time*` keep LATS's order, which is a known gap.
+5. **Warning banners.** LATS's markup for them isn't confirmed, so the CSS covers both a standalone element and a table cell. Check their markup and spacing.
+6. **Panel borders and rules.** Check Work Totals, Balances and Earnings, Leave Usage by Day, and FMLA Usage.
+7. **TDS status labels.** Check them at the team's usual window width.
+8. **Callouts.** Check the locked-period and Copy rows callouts after the alert restyle.
 
 ## Requirements
 
@@ -153,7 +184,7 @@ If the category list doesn't contain any category used in the previous period's 
 The visual direction is the simplicity of `docs/design-refs/inspiration-team-timesheet.png` and `docs/design-refs/inspiration-week-detail-panel.png`:
 - Lots of white space and thin dividers.
 - Day columns with a weekday name over a muted date.
-- Durations shown as "7h 30m."
+- Durations shown as "7h 30m." The Fill modal and settings page use them; LATS's own grid keeps its decimals (`UI-3`).
 - Time ranges shown as soft gray pills, such as "08:00-12:00 - 13:30-18:00."
 - Weekends shown as muted "Week-End" cells.
 - A bold totals column on the right.
@@ -180,11 +211,17 @@ Weekends and holidays show muted "Weekend" or "State holiday" cells. The footer 
 **UI-3: LATS timesheet grid restyle (P2)**
 Using CSS plus small additive DOM changes:
 - Make each day header two lines, with the weekday over a muted date.
-- Show computed totals as durations (`7h 30m`) next to LATS's decimal values. Don't replace them.
+- Show each row's period total in a Total column, in LATS's decimal hours. The team asked for decimals only, so don't add durations to the grid.
 - Make the totals column sticky.
 - Mute weekend columns. This already exists, so refine it.
-- Keep the collapsed empty leave rows, which already exist.
+- Hide hours rows that are empty or zero on every day behind an **Empty rows (N)** toggle in the grid corner. Time, location, totals, header, and Misc Leave rows always show.
+- Give the panel tables under the grid (Work Totals, Leave Usage by Day, and Balances and Earnings) 1px borders and a rule under every row.
+- Show LATS's missing-time and TDS mismatch banners as nys-alert warnings.
 - Show a status pill (`FLOW-3`).
+
+On the timesheet and TDS pages:
+- Put the Timesheet and TDS tabs first in the top tab bar, in the NYSDS nys-tab style. Keep the sub-tab bar a quiet toolbar.
+- Show LATS's holiday notices as one info alert that links to the Department of Civil Service holiday calendar.
 
 The underlying inputs keep their names and stay editable.
 
@@ -194,6 +231,8 @@ Follow the team-timesheet reference:
 - Show day cells with "-" for zero, and add a row-total column on the right.
 - Mark mismatched days with an icon plus text, not just red.
 - Show the Browse and Search task picker as one compact "Add task" control.
+- Fit the summary labels to the TDS page's longer status labels, such as "TDS Timesheet Status."
+- Bring every decoration, the Remaining row, and the mismatch marks back after LATS re-renders the grid (L11).
 
 **UI-5: Home page (P3)**
 Refine the existing `default.js` changes, which already collapse Announcements and Tips and restyle the timesheet link. Add the overdue count and an **Open oldest overdue** action (`FLOW-2`).
@@ -220,7 +259,7 @@ LATS has no sandbox, and every Save changes your real timesheet. Use the followi
   - A TDS page without rows
 
   Remove personal data from each snapshot before you commit it. Add Vitest with jsdom (see the `chrome-extension-development` skill) and test fill logic, order validation, holiday detection, and TDS rounding against those fixtures.
-- **Live checks.** On a real unsubmitted period, fill without saving, inspect the fields, then reload to discard. Save only the user's real data.
+- **Live checks.** On a real unsubmitted period, fill without saving, inspect the fields, then reload to discard. Save only the user's real data. The checks still owed are in [Live checks still owed](#live-checks-still-owed).
 - **Manual checklist:**
   - Hybrid week (`SCHED-3`)
   - Weekend shift (`SCHED-1`)
@@ -235,6 +274,13 @@ LATS has no sandbox, and every Save changes your real timesheet. Use the followi
 
 1. **Overnight shifts.** How does LATS expect overnight hours to be recorded (`SCHED-2`)? Verify in LATS or ask BSC.
 2. **Biweekly alternate schedule.** Should it become per-day presets, or stay as a separate Week 1/Week 2 option?
+
+Questions 3 through 6 are interpretations of the team's November 11 feedback. Confirm them with the team.
+
+3. **"Lined" tables.** LATS Go! reads this as a rule under every row in the panel tables. Is that what the team meant?
+4. **Holiday alert heading.** The heading is in sentence case, "State holiday reminder," not the mockup's "NYS State Holiday Reminder." Is that acceptable?
+5. **Holiday alert icon.** The alert uses the nys-alert info "i" icon, not the mockup's "!" icon. Is that acceptable?
+6. **Toggle name.** The empty-rows toggle is now "Empty rows" instead of "Leave." Does that name work for the team?
 
 ## Out of scope
 

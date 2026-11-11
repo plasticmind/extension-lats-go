@@ -60,72 +60,101 @@ input[value="Print"] {
 }
 
 /* An older LATS Go! build (Chrome Web Store 1.0) may still be installed alongside this one.
-   These `html body` rules out-rank its colors for the date box, tabs, and banners. */
+   These `html body` rules out-rank its colors for the date box and the sub-tab bar. */
 html body #pickTimesheetDate {
   background: var(--nys-color-surface) !important;
   color: var(--nys-color-text) !important;
   font-family: var(--nys-font-family-sans) !important;
 }
 
-html body .nav-tabs > li.active > a,
-html body .nav-tabs > li.active > a:hover,
-html body .nav-tabs > li.active > a:focus {
-  background: transparent !important;
-  color: var(--nys-color-text) !important;
-}
-
 html body .TimesheetSubTab {
   background: transparent !important;
 }
 
-html body .MissingTimeError:not(.k-header),
-html body .TdsError:not(.k-header) {
-  background: var(--nys-color-warning-weak) !important;
-  border-color: var(--nys-color-yellow-500) !important;
-}
-
-/* Top tabs: underline style */
-.nav-tabs {
+/* Top tabs (Timesheet, TDS, and a supervisor's Approval List): NYSDS nys-tabgroup, with the
+   values from nys-tab.scss. `:not(#tdsTasks *)` leaves the TDS task picker to its compact
+   rules in the TDS section. That ID and `html body` also out-rank LATS's tabs.css (boxed tabs
+   and a light-cyan hover, both !important) and the older LATS Go! build's tab colors. */
+html body .nav-tabs:not(#tdsTasks *) {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: var(--nys-space-100);
+  margin-bottom: 0 !important;
+  padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
-  border-bottom: 1px solid var(--lg-line) !important;
+  box-shadow: inset 0 -3px 0 var(--nys-color-neutral-50);
+  font-family: var(--nys-font-family-ui) !important;
 }
 
-.nav-tabs > li > a {
+/* Bootstrap's clearfix pseudo-elements would become flex items and add gaps. */
+html body .nav-tabs:not(#tdsTasks *)::before,
+html body .nav-tabs:not(#tdsTasks *)::after {
+  content: none !important;
+}
+
+html body .nav-tabs:not(#tdsTasks *) > li {
+  float: none !important;
+  margin: 0 !important;
+}
+
+html body .nav-tabs:not(#tdsTasks *) > li > a {
+  display: block;
+  margin: 0 !important;
+  padding: var(--nys-space-200) var(--nys-space-150) !important;
   border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  border-bottom: 3px solid var(--nys-color-neutral-50) !important;
+  border-radius: var(--nys-radius-md) var(--nys-radius-md) 0 0 !important;
+  background: var(--nys-color-surface) !important;
   color: var(--nys-color-text-weak) !important;
-  font-size: 14px !important;
-  padding: 10px 14px !important;
-  border-bottom: 2px solid transparent !important;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit !important;
+  font-size: 16px !important;
+  font-weight: var(--nys-font-weight-semibold) !important;
+  line-height: var(--nys-size-200) !important;
+  text-decoration: none !important;
 }
 
-/* `html body` out-ranks LATS's tabs.css hover (a light-cyan background with !important). */
-html body .nav-tabs > li > a:hover,
-html body .nav-tabs > li > a:focus-visible {
+html body .nav-tabs:not(#tdsTasks *) > li > a:hover {
   border-bottom-color: var(--nys-color-theme-weak) !important;
-  background: transparent !important;
-  color: var(--nys-color-theme) !important;
+  background: var(--nys-color-theme-weaker) !important;
+  color: var(--nys-color-text-weak) !important;
 }
 
-html body .nav-tabs > li.active > a:hover {
+html body .nav-tabs:not(#tdsTasks *) > li > a:active {
+  border-bottom-color: var(--nys-color-theme-mid) !important;
+  background: var(--nys-color-theme-weak) !important;
+}
+
+html body .nav-tabs:not(#tdsTasks *) > li.active > a {
   border-bottom-color: var(--nys-color-theme) !important;
+  background: var(--nys-color-neutral-10) !important;
   color: var(--nys-color-text) !important;
 }
 
-.nav-tabs > li.active > a,
-.nav-tabs > li.active > a:hover,
-.nav-tabs > li.active > a:focus {
-  background: transparent !important;
-  color: var(--nys-color-text) !important;
-  font-weight: 600 !important;
-  border-bottom: 2px solid var(--nys-color-theme) !important;
+/* As in nys-tab, the selected tab takes the hover tint, and its border darkens. */
+html body .nav-tabs:not(#tdsTasks *) > li.active > a:hover {
+  border-bottom-color: var(--nys-color-theme-strong) !important;
+  background: var(--nys-color-theme-weaker) !important;
+  color: var(--nys-color-text-weak) !important;
 }
 
-/* Sub-tab links (Audit, Summary, Notes, …): quiet toolbar. Only the div: LATS reuses the class
-   on a <td> for the Subtasks window's search hint, which a flex display breaks. */
+html body .nav-tabs:not(#tdsTasks *) > li.active > a:active {
+  border-bottom-color: var(--nys-color-theme-stronger) !important;
+  background: var(--nys-color-theme-weak) !important;
+}
+
+html body .nav-tabs:not(#tdsTasks *) > li.disabled > a {
+  border-bottom-color: var(--nys-color-neutral-50) !important;
+  background: var(--nys-color-surface) !important;
+  color: var(--nys-color-text-disabled) !important;
+  cursor: not-allowed;
+}
+
+/* Sub-tab links (Audit, Summary, Notes, …) stay a quiet toolbar instead of a second tab
+   bar: they have no selected state, and a second underlined bar would compete with the top
+   tabs. They share the top tabs' hover tint and focus ring. Only the div: LATS reuses the
+   class on a <td> for the Subtasks window's search hint, which a flex display breaks. */
 div.TimesheetSubTab {
   display: flex !important;
   flex-wrap: wrap;
@@ -147,7 +176,8 @@ div.TimesheetSubTab {
 .TimesheetSubTabItem a {
   display: inline-block;
   padding: 6px 10px !important;
-  border-radius: 4px;
+  border-radius: var(--nys-radius-md);
+  font-family: var(--nys-font-family-ui) !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   color: var(--nys-color-text-weak) !important;
@@ -158,13 +188,19 @@ div.TimesheetSubTab {
 html body .TimesheetSubTabItem a:hover,
 html body .TimesheetSubTabItem a:focus-visible,
 html body .TimesheetSubTab a.boldsearch:hover {
-  background: var(--nys-color-theme-faint) !important;
+  background: var(--nys-color-theme-weaker) !important;
   color: var(--nys-color-theme) !important;
   text-decoration: none !important;
 }
 
-/* Summary block: small uppercase labels in a fixed-width column, so the values line up;
-   regular-weight values; a muted dash for empty values. */
+html body .nav-tabs:not(#tdsTasks *) > li > a:focus-visible,
+html body .TimesheetSubTabItem a:focus-visible {
+  outline: var(--nys-border-width-md) solid var(--nys-color-focus) !important;
+  outline-offset: var(--nys-space-2px) !important;
+}
+
+/* Summary block: small uppercase labels in a column with a minimum width, so the values line
+   up; regular-weight values; a muted dash for empty values. */
 .tabContent label.k-label,
 .timesheetHeader label,
 #tsEditControls label {
@@ -205,22 +241,41 @@ html body .TimesheetSubTab a.boldsearch:hover {
   white-space: nowrap;
 }
 
+/* The padding keeps a gap between a label and its value or status pill. */
 .timesheetHeader > [class*="col-xs-"] > label.k-label {
   display: inline-block;
+  box-sizing: border-box;
+  padding-right: var(--nys-space-100) !important;
   vertical-align: baseline;
 }
 
-/* One label width per column, so each column's values start at the same place */
+/* One minimum label width per column, gap included, so each column's values start at the
+   same place. A label that's longer than that, such as the TDS page's "TDS Timesheet
+   Status", grows instead of running under its value. */
 .timesheetHeader > .col-xs-5 > label.k-label {
-  width: 104px;
+  min-width: 112px;
 }
 
 .timesheetHeader > .col-xs-4 > label.k-label {
-  width: 80px;
+  min-width: 88px;
 }
 
 .timesheetHeader > .col-xs-3 > label.k-label {
-  width: 116px;
+  min-width: 124px;
+}
+
+/* TDS page: the status labels ("Timesheet Status", "TDS Timesheet Status") are longer than
+   the timesheet page's. A minimum width that fits the longer one (about 152px in Arial or
+   Helvetica) keeps the status pills in that column lined up. In Bootstrap's col-xs-3, a label
+   and an Un-Submitted pill fit on one line from 1200px. Below that, each pill wraps under
+   its label instead of spilling out of the column, and the label never runs under its pill.
+   The minimum width shrinks to the column's width when the column is narrower. */
+html.lg-restyled-tds .timesheetHeader > [class*="col-xs-"]:has(> .lg-status-pill) {
+  white-space: normal;
+}
+
+html.lg-restyled-tds .timesheetHeader > [class*="col-xs-"]:has(> .lg-status-pill) > label.k-label {
+  min-width: min(14em, 100%);
 }
 
 #supervisorName {
@@ -651,7 +706,10 @@ html body .k-window .k-button:focus-visible {
   display: none !important;
 }
 
-#topLeftMessages .k-label {
+/* Visible notices only. lats-restyle.js hides holiday notices with .lg-visually-hidden from
+   ui.css, whose padding and margin this rule would beat. :where() adds no specificity, so the
+   empty-notice rule still wins. */
+#topLeftMessages .k-label:where(:not(.lg-visually-hidden)) {
   display: inline-flex !important;
   align-items: center;
   gap: 6px;
@@ -665,52 +723,88 @@ html body .k-window .k-button:focus-visible {
   font-weight: 600 !important;
 }
 
-.lg-holiday-note {
-  font-weight: 400;
-  color: var(--nys-color-text-weak);
+/* With no visible notices left, drop the notice row's margins. */
+#topLeftMessages:not(:has(.k-label:not([data-lg-empty]):not([data-lg-holiday]))) {
+  margin: 0 !important;
 }
 
-.lg-holiday-note::before {
-  content: "\00B7";
-  margin-right: 6px;
+/* The alert itself is styled by .lg-alert in ui.css. */
+.lg-holiday-alert {
+  clear: both;
+  margin: var(--nys-space-200) 0;
 }
 
-/* LATS's error rows: one calm warning callout, with an icon and text */
-.MissingTimeError:not(.k-header),
-.TdsError:not(.k-header) {
-  padding: 0 !important;
-  border: 1px solid var(--nys-color-yellow-500) !important;
-  border-left-width: 4px !important;
-  border-radius: 4px;
-  background: var(--nys-color-warning-weak) !important;
+/* LATS's error rows, drawn as nys-alert warnings like .lg-alert in ui.css: a heading (::before)
+   over regular text (::after). LATS's own icon and link are hidden, and its text is shrunk to
+   nothing. Screen readers still read that text, so the new copy has empty alt text
+   (content: "…" / ""): they hear LATS's sentence once, not a mix of the two.
+   The icon is NYSDS's warning glyph, filled with --nys-color-text (#1b1b1b), because a
+   background image can't use currentColor. */
+html body :is(.MissingTimeError, .TdsError):not(.k-header) {
+  padding: var(--nys-space-250) var(--nys-space-250) var(--nys-space-250) calc(var(--nys-space-250) + 24px + var(--nys-space-150)) !important;
+  border: 0 !important;
+  border-left: var(--nys-border-width-lg) solid var(--nys-color-warning) !important;
+  border-radius: var(--nys-radius-md);
+  background: var(--nys-color-warning-weak) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%231b1b1b' d='M2.73 21C2.54 21 2.38 20.95 2.23 20.86C2.08 20.77 1.96 20.65 1.88 20.5C1.79 20.35 1.75 20.19 1.74 20.01C1.73 19.84 1.78 19.67 1.88 19.5L11.12 3.5C11.22 3.33 11.35 3.21 11.51 3.12C11.67 3.04 11.83 3 12 3C12.17 3 12.33 3.04 12.49 3.12C12.65 3.21 12.78 3.33 12.88 3.5L22.12 19.5C22.23 19.67 22.27 19.84 22.26 20.01C22.25 20.19 22.21 20.35 22.12 20.5C22.04 20.65 21.93 20.77 21.77 20.86C21.62 20.95 21.46 21 21.27 21H2.73ZM4.45 19H19.55L12 6L4.45 19ZM12 18C12.28 18 12.52 17.9 12.71 17.71C12.9 17.52 13 17.28 13 17C13 16.72 12.9 16.48 12.71 16.29C12.52 16.1 12.28 16 12 16C11.72 16 11.48 16.1 11.29 16.29C11.1 16.48 11 16.72 11 17C11 17.28 11.1 17.52 11.29 17.71C11.48 17.9 11.72 18 12 18ZM12 15C12.28 15 12.52 14.9 12.71 14.71C12.9 14.52 13 14.28 13 14V11C13 10.72 12.9 10.48 12.71 10.29C12.52 10.1 12.28 10 12 10C11.72 10 11.48 10.1 11.29 10.29C11.1 10.48 11 10.72 11 11V14C11 14.28 11.1 14.52 11.29 14.71C11.48 14.9 11.72 15 12 15Z'/></svg>") no-repeat var(--nys-space-250) var(--nys-space-250) / 24px 24px !important;
   color: var(--nys-color-text) !important;
   text-align: left !important;
   font-size: 0 !important;
+  line-height: 0 !important;
 }
 
-.MissingTimeError:not(.k-header) img,
-.MissingTimeError:not(.k-header) a,
-.TdsError:not(.k-header) img,
-.TdsError:not(.k-header) a {
+html body :is(.MissingTimeError, .TdsError):not(.k-header) :is(img, a) {
   display: none !important;
 }
 
-.MissingTimeError:not(.k-header)::after,
-.TdsError:not(.k-header)::after {
+html body :is(.MissingTimeError, .TdsError):not(.k-header)::before,
+html body :is(.MissingTimeError, .TdsError):not(.k-header)::after {
   display: block;
-  padding: 10px 16px;
-  font-family: var(--nys-font-family-sans);
-  font-size: 14px !important;
+  font-family: var(--nys-font-family-ui);
+  font-size: 16px !important;
+  line-height: 24px;
   color: var(--nys-color-text) !important;
   text-align: left;
+  white-space: normal;
+}
+
+html body :is(.MissingTimeError, .TdsError):not(.k-header)::before {
+  font-weight: var(--nys-font-weight-semibold);
+}
+
+html body :is(.MissingTimeError, .TdsError):not(.k-header)::after {
+  margin-top: var(--nys-space-50);
+  font-weight: var(--nys-font-weight-regular);
+}
+
+html body .MissingTimeError:not(.k-header)::before {
+  content: "Some days are missing time" / "" !important;
 }
 
 html body .MissingTimeError:not(.k-header)::after {
-  content: "\26A0\FE0E  Some days are missing time. Select Fill Timecard to fill them." !important;
+  content: "Select Fill Timecard to fill them." / "" !important;
+}
+
+html body .TdsError:not(.k-header)::before {
+  content: "TDS hours don't match your worked hours" / "" !important;
 }
 
 html body .TdsError:not(.k-header)::after {
-  content: "\26A0\FE0E  Your TDS hours don't match your worked hours yet. Assign them on the TDS tab." !important;
+  content: "Assign your worked hours to tasks on the TDS tab." / "" !important;
+}
+
+/* Space the warning rows from the notices above and the grid below, and from each other.
+   LATS's markup for them isn't confirmed, so cover both shapes. A warning that's an element
+   of its own, such as a div, gets margins. A warning that's a table cell gets them on its
+   table, where separate borders space the rows and let them keep their rounded corners. The
+   timesheet grid never gets them, in case a warning row ever moves into it. */
+html.lg-restyled:not(.lg-restyled-tds) body :is(.MissingTimeError, .TdsError):not(.k-header):not(td, th, #timesheetTable *) {
+  margin: 16px 0 !important;
+}
+
+html.lg-restyled:not(.lg-restyled-tds) body table:has(> * > tr > :is(td, th):is(.MissingTimeError, .TdsError):not(.k-header)):not(#timesheetTable) {
+  margin: 8px 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 8px !important;
 }
 
 /* On the TDS page itself, the Remaining row already shows what's left. */
@@ -924,21 +1018,12 @@ th.lg-has-dayhead br {
 }
 
 .lg-rowsum {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
   font-family: var(--nys-font-family-sans);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.25;
   font-variant-numeric: tabular-nums;
   color: var(--nys-color-text);
-}
-
-.lg-rowsum__duration {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--nys-color-text-weak);
 }
 
 /* Inputs */
@@ -1033,8 +1118,8 @@ th.lg-has-dayhead br {
   border-bottom: 1px solid var(--lg-line-strong) !important;
 }
 
-/* Leave rows: empty ones hide behind "Show empty leave rows" */
-html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="false"] {
+/* Hours rows (leave and charges): empty ones hide behind the Empty rows button */
+html.lg-restyled:not(.lg-show-empty-rows) #timesheetTable tr[data-has-values="false"] {
   display: none;
 }
 
@@ -1042,7 +1127,7 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   color: var(--nys-color-text) !important;
 }
 
-/* Grid corner: LATS's Extras button, then LATS Go!'s Leave button */
+/* Grid corner: LATS's Extras button, then LATS Go!'s Empty rows button */
 #timesheetTable td.lg-grid-corner {
   vertical-align: bottom !important;
   padding-bottom: 8px !important;
@@ -1052,7 +1137,7 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   margin-top: 6px;
 }
 
-.lg-leave-button {
+.lg-empty-rows-button {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1069,8 +1154,13 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   cursor: pointer;
 }
 
-.lg-leave-button::before {
-  content: "+";
+/* display: flex would otherwise override the hidden attribute. */
+.lg-empty-rows-button[hidden] {
+  display: none;
+}
+
+.lg-empty-rows-button::before {
+  content: "+" / "";
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1080,15 +1170,15 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   line-height: 1;
 }
 
-.lg-leave-button[aria-expanded="true"]::before {
-  content: "\2212";
+.lg-empty-rows-button[aria-expanded="true"]::before {
+  content: "\2212" / "";
 }
 
-.lg-leave-button:hover {
+.lg-empty-rows-button:hover {
   background: var(--nys-color-theme-weak);
 }
 
-.lg-leave-button:focus-visible {
+.lg-empty-rows-button:focus-visible {
   outline: 2px solid var(--nys-color-focus);
   outline-offset: 2px;
 }
@@ -1135,13 +1225,6 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
 #timesheetTable tr[data-lg-total] > td.lg-zero {
   color: var(--nys-color-text-weaker) !important;
   font-weight: 400 !important;
-}
-
-.lg-duration {
-  display: block;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--nys-color-text-weak);
 }
 
 /* Panels under the grid. lats-restyle.js moves Work Totals right after Balances and Earnings,
@@ -1207,8 +1290,9 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   line-height: 1.3 !important;
 }
 
-/* Grids: one card each, quiet headers, tabular numbers */
+/* Grids and plain data tables (lg-data-table): one card each, quiet headers, tabular numbers */
 #frmUpdateTimesheet .k-grid,
+#frmUpdateTimesheet table.lg-data-table,
 .tabContent .k-grid {
   overflow: hidden;
   border: 1px solid var(--lg-line) !important;
@@ -1245,6 +1329,53 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   color: var(--nys-color-text) !important;
   font-size: 13px !important;
   font-variant-numeric: tabular-nums;
+}
+
+/* Panel data tables (Work Totals, Leave Usage by Day, Balances and Earnings): Kendo grids, and
+   plain tables that have header cells and no tables inside them, which lats-restyle.js marks
+   lg-data-table. Layout tables, which hold other tables or have no header cells, stay unlined.
+
+   Each data table is one card: a Kendo grid's .k-grid wrapper draws the outline, and a plain
+   table draws its own. Each cell draws only its left and bottom edges, so every divider is
+   1px where cells meet, in the header and the body alike. The rule under each row, like the
+   timesheet grid's row dividers, lets you follow a row across. */
+#frmUpdateTimesheet .k-grid table,
+#frmUpdateTimesheet table.lg-data-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Inside a Kendo grid, the .k-grid card is the only outline. */
+#frmUpdateTimesheet .k-grid table,
+#frmUpdateTimesheet .k-grid .k-grid-header,
+#frmUpdateTimesheet .k-grid .k-grid-header-wrap,
+#frmUpdateTimesheet .k-grid .k-grid-content {
+  border: 0 !important;
+}
+
+#frmUpdateTimesheet .k-grid td,
+#frmUpdateTimesheet .k-grid th,
+#frmUpdateTimesheet table.lg-data-table :is(td, th) {
+  border-style: solid !important;
+  border-color: var(--lg-line) !important;
+  border-width: 0 0 1px 1px !important;
+}
+
+#frmUpdateTimesheet .k-grid tr > :first-child,
+#frmUpdateTimesheet table.lg-data-table tr > :first-child {
+  border-left-width: 0 !important;
+}
+
+/* Kendo pads grid cells; give a plain data table's cells the same room inside its card. */
+#frmUpdateTimesheet table.lg-data-table :is(td, th) {
+  padding-right: 8px !important;
+  padding-left: 8px !important;
+}
+
+/* The card's bottom edge is the last row's rule. */
+#frmUpdateTimesheet .k-grid tbody > tr:last-child > td:not(.k-header),
+#frmUpdateTimesheet table.lg-data-table > :last-child > tr:last-child > td:not(.k-header) {
+  border-bottom-width: 0 !important;
 }
 
 #frmUpdateTimesheet .k-grid .k-table-row,
@@ -1284,6 +1415,13 @@ html.lg-restyled:not(.lg-show-empty-leave) #timesheetTable tr[data-has-values="f
   border: 1px solid var(--lg-line);
   border-radius: 8px;
   background: var(--nys-color-surface);
+}
+
+/* A thin baseline instead of LATS's boxed tab bar. */
+#tdsTasks .nav-tabs {
+  border: 0 !important;
+  border-bottom: 1px solid var(--lg-line) !important;
+  border-radius: 0 !important;
 }
 
 #tdsTasks .nav-tabs > li > a,
