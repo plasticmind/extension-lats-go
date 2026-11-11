@@ -17,8 +17,7 @@ if (!window.latsGoInitialized) {
     'use strict';
 
     const LG = LatsGo;
-    const { el, setText, numberIn, shortDate } = LG;
-    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const { el, setText, numberIn, shortDate, icon } = LG;
     const TITLE_PATTERN = /^(.*\S)\s+Day\s+(\d+)\s+([A-Za-z]+)$/;
     const TDS_HISTORY_KEY = 'tdsHistory';
     const TDS_HISTORY_LIMIT = 8;
@@ -27,30 +26,6 @@ if (!window.latsGoInitialized) {
 
     function sleep(ms) {
       return new Promise(function (resolve) { setTimeout(resolve, ms); });
-    }
-
-    const ICON_PATHS = {
-      close: 'M6 6l12 12M18 6L6 18',
-      lock: 'M6 11h12v10H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3',
-      info: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 11v5 M12 7.5v.5',
-      copy: 'M9 9h11v11H9z M15 9V4H4v11h5'
-    };
-
-    function icon(name, className) {
-      const svg = document.createElementNS(SVG_NS, 'svg');
-      svg.setAttribute('viewBox', '0 0 24 24');
-      svg.setAttribute('aria-hidden', 'true');
-      svg.setAttribute('focusable', 'false');
-      svg.setAttribute('fill', 'none');
-      svg.setAttribute('stroke', 'currentColor');
-      svg.setAttribute('stroke-width', '2');
-      svg.setAttribute('stroke-linecap', 'round');
-      svg.setAttribute('stroke-linejoin', 'round');
-      if (className) svg.setAttribute('class', className);
-      const path = document.createElementNS(SVG_NS, 'path');
-      path.setAttribute('d', ICON_PATHS[name]);
-      svg.appendChild(path);
-      return svg;
     }
 
     function longDate(date) {
@@ -102,9 +77,8 @@ if (!window.latsGoInitialized) {
       const table = document.getElementById('timesheetTable');
       if (!table) return null;
 
-      const pageText = document.body.innerText;
-      const range = LG.parsePeriodRange(pageText);
-      const holidays = LG.findStateHolidays(pageText);
+      const range = LG.parsePeriodRange(document.body.innerText);
+      const holidays = LG.pageHolidays();
       const byIndex = {};
 
       table.querySelectorAll('input').forEach(function (input) {
@@ -471,7 +445,7 @@ if (!window.latsGoInitialized) {
         close
       ]));
 
-      const alertBox = el('div', { className: 'lg-alert', role: 'alert', tabindex: '-1', hidden: true, 'data-role': 'errors' });
+      const alertBox = el('div', { className: 'lg-alert lg-alert--danger', role: 'alert', tabindex: '-1', hidden: true, 'data-role': 'errors' });
       const table = el('table', { className: 'lg-table lg-week-table' }, [
         el('caption', { className: 'lg-visually-hidden', text: 'Days in the pay period ' + periodText }),
         el('thead', {}, [el('tr', {}, [
@@ -718,7 +692,7 @@ if (!window.latsGoInitialized) {
 
       if (errors.length) {
         alertBox.textContent = '';
-        alertBox.appendChild(el('p', { text: 'Fix these days, then try again:' }));
+        alertBox.appendChild(el('p', { className: 'lg-alert__heading', text: 'Fix these days, then try again:' }));
         alertBox.appendChild(el('ul', {}, errors.map(function (message) { return el('li', { text: message }); })));
         alertBox.hidden = false;
         alertBox.focus();
@@ -806,14 +780,15 @@ if (!window.latsGoInitialized) {
         }
       });
 
-      const callout = el('div', { className: 'lg lg-callout lg-locked-callout' }, [
-        icon('lock', 'lg-callout__icon'),
-        el('div', { className: 'lg-callout__body' }, [
-          el('p', { className: 'lg-callout__title', text: 'This period is locked' }),
-          el('p', { text: 'LATS unlocks this period after you submit earlier timesheets.' }),
-          status
-        ]),
-        button
+      const callout = LG.alert({
+        type: 'info',
+        icon: 'lock',
+        heading: 'This period is locked',
+        className: 'lg-callout lg-locked-callout',
+        action: button
+      }, [
+        el('p', { text: 'LATS unlocks this period after you submit earlier timesheets.' }),
+        status
       ]);
       anchor.parentNode.insertBefore(callout, anchor);
     }
@@ -833,7 +808,7 @@ if (!window.latsGoInitialized) {
       if (attempt < 40) setTimeout(function () { watchTimesheetControls(attempt + 1); }, 250);
     }
 
-    // Weekend marks, empty leave rows, and Total columns on both pages come from
+    // Weekend marks, the Empty rows button, and Total columns on both pages come from
     // scripts/lats-restyle.js.
 
     function initTimesheetPage() {
@@ -887,9 +862,13 @@ if (!window.latsGoInitialized) {
       });
     }
 
+    /** The period's start date, once the page shows it. A re-render doesn't change the period. */
+    let periodStart = null;
+
     function tdsPeriodKey() {
+      if (periodStart) return periodStart;
       const range = LG.parsePeriodRange(document.body.innerText);
-      if (range) return LG.dateKey(range.start);
+      if (range) return (periodStart = LG.dateKey(range.start));
       const id = new URLSearchParams(location.search).get('tshdrid');
       return id ? 'id:' + id : null;
     }
@@ -905,12 +884,19 @@ if (!window.latsGoInitialized) {
       };
     }
 
+    /** The period key and rows that cacheTdsRows last wrote, serialized. */
+    let lastCachedRows = '';
+
     /** Remember this period's rows so a later period can copy them (TDS-1). */
     function cacheTdsRows(key, rows) {
       if (!key || !rows.length) return;
+      const stored = rows.map(storedRow);
+      const serialized = JSON.stringify([key, stored]);
+      if (serialized === lastCachedRows) return;
+      lastCachedRows = serialized;
       chrome.storage.local.get(TDS_HISTORY_KEY, function (data) {
         const history = data[TDS_HISTORY_KEY] || {};
-        history[key] = { savedAt: Date.now(), rows: rows.map(storedRow) };
+        history[key] = { savedAt: Date.now(), rows: stored };
         const keys = Object.keys(history).sort(function (a, b) { return history[b].savedAt - history[a].savedAt; });
         keys.slice(TDS_HISTORY_LIMIT).forEach(function (old) { delete history[old]; });
         const update = {};
@@ -949,10 +935,17 @@ if (!window.latsGoInitialized) {
       return [row.taskCode || row.task, row.subTask].filter(Boolean).join(' · ');
     }
 
-    function insertCopyRowsCallout(currentKey) {
-      if (document.querySelector('.lg-tds-copy')) return;
+    let copyCallout = null;
+
+    /** Put the Copy rows callout above the rows, again if LATS re-rendered the grid around it. */
+    function placeCopyCallout() {
       const anchor = document.getElementById('distributionRows');
-      if (!anchor) return;
+      if (!copyCallout || copyCallout.isConnected || !anchor) return;
+      anchor.parentNode.insertBefore(copyCallout, anchor);
+    }
+
+    function insertCopyRowsCallout(currentKey) {
+      if (copyCallout || !document.getElementById('distributionRows')) return;
 
       const source = el('p', { className: 'lg-hint' });
       const status = el('p', { className: 'lg-hint', role: 'status', 'aria-live': 'polite' });
@@ -962,18 +955,19 @@ if (!window.latsGoInitialized) {
         el('span', { text: 'Copy rows from last period' })
       ]);
 
-      const callout = el('div', { className: 'lg lg-callout lg-tds-copy' }, [
-        icon('info', 'lg-callout__icon'),
-        el('div', { className: 'lg-callout__body' }, [
-          el('p', { className: 'lg-callout__title', text: 'No task rows yet' }),
-          el('p', { text: 'Copy the task and sub-task rows from your last pay period. You still enter the hours.' }),
-          source,
-          status,
-          results
-        ]),
-        button
+      copyCallout = LG.alert({
+        type: 'info',
+        icon: 'info',
+        heading: 'No task rows yet',
+        className: 'lg-callout lg-tds-copy',
+        action: button
+      }, [
+        el('p', { text: 'Copy the task and sub-task rows from your last pay period. You still enter the hours.' }),
+        source,
+        status,
+        results
       ]);
-      anchor.parentNode.insertBefore(callout, anchor);
+      placeCopyCallout();
 
       chrome.storage.local.get(TDS_HISTORY_KEY, function (data) {
         const history = data[TDS_HISTORY_KEY] || {};
@@ -1041,12 +1035,16 @@ if (!window.latsGoInitialized) {
       } else {
         button.hidden = true;
       }
-      refreshTds();
+      syncTdsRows();
     }
 
     function ensureRemainingRow(tdsTable) {
       let wrapper = document.querySelector('.lg-tds-remaining');
-      if (wrapper) return wrapper;
+      // Reuse the row while it still sits under this TDS Totals table and matches its columns.
+      // After LATS re-renders the footer, build it again from the new table.
+      const hasTotal = function (node) { return !!node.querySelector('td.lg-total-col'); };
+      if (wrapper && wrapper.previousElementSibling === tdsTable && hasTotal(wrapper) === hasTotal(tdsTable)) return wrapper;
+      if (wrapper) wrapper.remove();
       const clone = tdsTable.cloneNode(true);
       clone.removeAttribute('id');
       clone.querySelectorAll('[id]').forEach(function (node) { node.removeAttribute('id'); });
@@ -1145,19 +1143,27 @@ if (!window.latsGoInitialized) {
       }
     }
 
-    let tdsRefreshTimer = null;
-
-    function refreshTds() {
-      clearTimeout(tdsRefreshTimer);
-      tdsRefreshTimer = setTimeout(function () {
-        updateTdsRemaining();
-        const rows = readTdsRows();
-        const copyCallout = document.querySelector('.lg-tds-copy');
-        if (rows.length) {
-          cacheTdsRows(tdsPeriodKey(), rows);
-          if (copyCallout && !copyCallout.dataset.used) copyCallout.remove();
+    /**
+     * Cache this period's rows (TDS-1). Once there are rows, drop the Copy rows callout unless
+     * you've used it; otherwise keep it above the rows.
+     */
+    function syncTdsRows() {
+      const rows = readTdsRows();
+      if (rows.length) {
+        cacheTdsRows(tdsPeriodKey(), rows);
+        if (copyCallout && !copyCallout.dataset.used) {
+          copyCallout.remove();
+          copyCallout = null;
         }
-      }, 120);
+      }
+      placeCopyCallout();
+    }
+
+    /** Bring the footer marks, the Remaining row, and the rows cache in step with the grid. */
+    function refreshTds() {
+      highlightTdsMismatches();
+      updateTdsRemaining();
+      syncTdsRows();
     }
 
     function initTdsPage() {
@@ -1169,6 +1175,7 @@ if (!window.latsGoInitialized) {
       if (rows.length) cacheTdsRows(key, rows);
       else insertCopyRowsCallout(key);
 
+      // Listen on the document, so the listeners outlive grid nodes that LATS replaces.
       document.addEventListener('input', function (event) {
         if (event.target.matches && event.target.matches('input.distributionCell')) updateTdsRemaining();
       });
@@ -1179,22 +1186,8 @@ if (!window.latsGoInitialized) {
         }
       });
 
-      const distributionRows = document.getElementById('distributionRows');
-      if (distributionRows) {
-        // Ignore lats-restyle.js's row decorations and Total cells, which change as you type.
-        new MutationObserver(function (mutations) {
-          const external = mutations.some(function (mutation) { return !LG.isOwnMutation(mutation, '.lg-task, .lg-total-col'); });
-          if (external) refreshTds();
-        }).observe(distributionRows, { childList: true, subtree: true });
-      }
-
-      const footer = document.getElementById('tdsFooter');
-      if (footer) {
-        new MutationObserver(function (mutations) {
-          const external = mutations.some(function (mutation) { return !LG.isOwnMutation(mutation, '.lg-tds-remaining, .lg-total-col'); });
-          if (external) highlightTdsMismatches();
-        }).observe(footer, { childList: true, subtree: true, characterData: true });
-      }
+      // Runs after lats-restyle.js has decorated the new nodes.
+      LG.onLatsChange(LG.TDS_GRID, refreshTds, { tdsRowFields: true });
     }
 
     // ========== INITIALIZATION ==========

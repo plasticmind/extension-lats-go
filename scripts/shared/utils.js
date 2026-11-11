@@ -596,6 +596,39 @@ const LatsGo = (function () {
   }
 
   /**
+   * The Department of Civil Service calendar of legal holidays for a year. The department
+   * publishes one page per year, such as 2026_legal_holidays.cfm, about a year ahead.
+   */
+  function holidayCalendarUrl(year) {
+    return 'https://www.cs.ny.gov/attendance_leave/' + year + '_legal_holidays.cfm';
+  }
+
+  /**
+   * The state holidays in the current page's notices. It reads document.body.innerText, which
+   * skips display: none, so LATS Go! only visually hides LATS's holiday notices.
+   * @returns {string[]} Date keys ("2026-10-12").
+   */
+  function pageHolidays() {
+    return findStateHolidays(document.body.innerText);
+  }
+
+  /** "A", "A and B", or "A, B, and C". */
+  function formatList(items) {
+    if (items.length < 3) return items.join(' and ');
+    return items.slice(0, -1).join(', ') + ', and ' + items[items.length - 1];
+  }
+
+  /**
+   * Holiday date keys as a sentence-ready list of MM/DD/YYYY dates, as LATS writes them:
+   * "11/11/2026", "11/11/2026 and 11/26/2026", or "12/24/2026, 12/25/2026, and 01/01/2027".
+   * findStateHolidays matches only a date right after "Holiday - ", so a sentence that starts
+   * with these dates doesn't add or repeat holidays when it reads the page.
+   */
+  function formatHolidayList(keys) {
+    return formatList(keys.map(function (key) { return key.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3/$1'); }));
+  }
+
+  /**
    * Read the timesheet status from page text: New, Un-Submitted, Submitted, Approved,
    * Processed, or Rejected. Returns '' when it isn't found.
    */
@@ -670,9 +703,13 @@ const LatsGo = (function () {
   /**
    * Create an element. `attrs` takes `className`, `text`, and attributes: true sets an empty
    * attribute, and false, null, or undefined skips it. Children can be nodes or strings.
+   *
+   * Every element gets a `data-lg` stamp, as do icon() SVGs, so isOwnMutation can tell LATS
+   * Go!'s nodes from LATS's. Build every node LATS Go! adds to a LATS page with these two.
    */
   function el(tag, attrs, children) {
     const node = document.createElement(tag);
+    node.setAttribute('data-lg', '');
     Object.keys(attrs || {}).forEach(function (name) {
       const value = attrs[name];
       if (name === 'text') node.textContent = value;
@@ -697,6 +734,63 @@ const LatsGo = (function () {
     else if (node.hasAttribute(name)) node.removeAttribute(name);
   }
 
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  /**
+   * 24px icons for the extension's UI. Line icons draw with a 2px stroke. `info` is the NYSDS
+   * (Material Symbols) info glyph that nys-alert shows, drawn as a filled shape.
+   */
+  const ICONS = {
+    close: { stroke: 'M6 6l12 12M18 6L6 18' },
+    lock: { stroke: 'M6 11h12v10H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3' },
+    copy: { stroke: 'M9 9h11v11H9z M15 9V4H4v11h5' },
+    info: { fill: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM12 4a8 8 0 1 1 0 16a8 8 0 1 1 0-16z' +
+      'M12 7a1 1 0 1 1 0 2a1 1 0 1 1 0-2zM11 12a1 1 0 0 1 2 0v4a1 1 0 0 1-2 0z' }
+  };
+
+  /** An inline SVG icon from ICONS in the current text color, hidden from assistive technology. */
+  function icon(name, className) {
+    const spec = ICONS[name];
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('data-lg', '');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS(SVG_NS, 'path');
+    if (spec.fill) {
+      svg.setAttribute('fill', 'currentColor');
+      path.setAttribute('fill-rule', 'evenodd');
+      path.setAttribute('d', spec.fill);
+    } else {
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('d', spec.stroke);
+    }
+    if (className) svg.setAttribute('class', className);
+    svg.appendChild(path);
+    return svg;
+  }
+
+  /**
+   * An alert in the nys-alert style (.lg-alert in ui.css): an icon, then a body with a heading
+   * over `children`.
+   * @param {Object} options `type` ('info' or 'danger'), `icon` (an ICONS name), `heading`,
+   *   `className` (more classes for the alert), `body` (attributes for the body, such as a
+   *   live region's role), and `action` (a node after the body, such as a callout's button).
+   * @param {Array} [children] Nodes or strings under the heading.
+   */
+  function alert(options, children) {
+    return el('div', { className: 'lg lg-alert lg-alert--' + options.type + (options.className ? ' ' + options.className : '') }, [
+      icon(options.icon, 'lg-alert__icon'),
+      el('div', Object.assign({ className: 'lg-alert__body' }, options.body),
+        [el('p', { className: 'lg-alert__heading', text: options.heading })].concat(children || [])),
+      options.action
+    ]);
+  }
+
   /** The number in a node's text, ignoring other characters; 0 when there isn't one. */
   function numberIn(node) {
     return parseFloat(String(node && node.textContent || '').replace(/[^\d.-]/g, '')) || 0;
@@ -712,18 +806,35 @@ const LatsGo = (function () {
     return /(Saturday|Sunday)\s*$/.test(title || '');
   }
 
+  /** A node's element: the node itself, or a text node's parent. */
+  function elementOf(node) {
+    return node.nodeType === 1 ? node : node.parentElement;
+  }
+
+  /** The nodes a mutation adds and removes, as one array. */
+  function changedNodes(mutation) {
+    return Array.prototype.slice.call(mutation.addedNodes).concat(Array.prototype.slice.call(mutation.removedNodes));
+  }
+
+  /** isOwnMutation for a mutation whose added and removed nodes the caller already has. */
+  function isOwnChange(mutation, nodes) {
+    const target = elementOf(mutation.target);
+    if (target && target.closest('[data-lg]')) return true;
+    return nodes.length > 0 && (nodes.every(function (node) {
+      return node.nodeType === 1 && node.hasAttribute('data-lg');
+    }) || nodes.every(function (node) {
+      return node.nodeType === 1 && node.isConnected && !!node.closest('[data-lg]');
+    }));
+  }
+
   /**
-   * True when a mutation only touches LATS Go!'s own elements: its target is inside
-   * `ownSelector`, or every node it adds or removes is an lg- element or a <colgroup>.
-   * MutationObservers use it so the extension doesn't react to its own decorations.
+   * True when a mutation is LATS Go!'s own change: its target is inside a node from el() or
+   * icon() (`data-lg`), every node it adds or removes is one, or it moves LATS nodes into one,
+   * such as a day's warning icon. MutationObservers use it so the extension doesn't react to
+   * its own decorations. LATS's nodes never count, even ones that carry an lg- class.
    */
-  function isOwnMutation(mutation, ownSelector) {
-    const target = mutation.target;
-    if (target.nodeType === 1 && target.closest(ownSelector)) return true;
-    const nodes = Array.prototype.slice.call(mutation.addedNodes).concat(Array.prototype.slice.call(mutation.removedNodes));
-    return nodes.length > 0 && nodes.every(function (node) {
-      return node.nodeType === 1 && /(^|\s)lg-/.test(node.className || '') || node.nodeName === 'COLGROUP';
-    });
+  function isOwnMutation(mutation) {
+    return isOwnChange(mutation, changedNodes(mutation));
   }
 
   let requestCounter = 0;
@@ -792,23 +903,126 @@ const LatsGo = (function () {
     return Array.prototype.slice.call(table.querySelectorAll('tr td:not(.leftColumn):not(.lg-total-col)'));
   }
 
+  /** A TDS row's hidden fields, by the end of their IDs (Distributions_0__TaskCode). */
+  const TDS_ROW_FIELDS = {
+    categoryCode: 'CategoryCode',
+    categoryDescription: 'CategoryDescription',
+    taskCode: 'TaskCode',
+    taskDescription: 'TaskDescription',
+    subTaskCode: 'SubTask_0__Name',
+    subTaskDescription: 'SubTask_0__Description'
+  };
+
   /**
    * A TDS row's codes from LATS's hidden fields, such as Distributions_0__TaskCode. Values are
    * whitespace-normalized (L9), and null when the field is missing.
    */
   function readTdsRowFields(container) {
-    const value = function (suffix) {
-      const input = container && container.querySelector('input[type="hidden"][id$="__' + suffix + '"]');
-      return input ? normalizeSpace(input.value) : null;
+    const fields = {};
+    Object.keys(TDS_ROW_FIELDS).forEach(function (key) {
+      const input = container && container.querySelector('input[type="hidden"][id$="__' + TDS_ROW_FIELDS[key] + '"]');
+      fields[key] = input ? normalizeSpace(input.value) : null;
+    });
+    return fields;
+  }
+
+  // ========== LATS CHANGE WATCHER ==========
+
+  /** The parts of the TDS page that LATS renders as a grid: the day header, rows, and footer. */
+  const TDS_GRID = '#gridHeader, #distributionRows, #tdsFooter';
+
+  /** The ID endings of a TDS row's hidden fields (TDS_ROW_FIELDS), such as "__TaskCode". */
+  const TDS_ROW_FIELD_ID = new RegExp('__(' + Object.keys(TDS_ROW_FIELDS).map(function (key) {
+    return TDS_ROW_FIELDS[key];
+  }).join('|') + ')$');
+
+  /** Subscribers to onLatsChange, in the order they subscribed. */
+  const changeSubscribers = [];
+  let changeObserver = null;
+
+  /** True when a mutation happens inside `regions`, or adds or removes a node that is or holds one. */
+  function touchesRegions(mutation, nodes, regions) {
+    // Null for a text node that LATS has already removed.
+    const target = elementOf(mutation.target);
+    if (target && target.closest(regions)) return true;
+    return nodes.some(function (node) {
+      return node.nodeType === 1 && (node.matches(regions) || !!node.querySelector(regions));
+    });
+  }
+
+  /**
+   * Mark the subscribers whose regions a batch of mutations changes. The region check is cheap,
+   * so it runs first, and the own-change check runs only for a mutation that touches a region.
+   * @returns {boolean} True when the batch changes any subscriber's regions, marked or not.
+   */
+  function markChangedSubscribers(mutations) {
+    let changed = false;
+    mutations.forEach(function (mutation) {
+      // Once the batch has a change, only unmarked subscribers have anything left to learn.
+      const candidates = changed ? changeSubscribers.filter(function (sub) { return !sub.dirty; }) : changeSubscribers;
+      if (!candidates.length) return;
+      let touched;
+      if (mutation.type === 'attributes') {
+        // A new value in a TDS row's hidden field. Setting a hidden input's value, as jQuery's
+        // .val() does, sets its value attribute. LATS Go! never sets one.
+        const target = mutation.target;
+        if (target.type !== 'hidden' || !TDS_ROW_FIELD_ID.test(target.id)) return;
+        touched = candidates.filter(function (sub) { return sub.tdsRowFields && target.closest(sub.regions); });
+      } else {
+        const nodes = changedNodes(mutation);
+        touched = candidates.filter(function (sub) { return touchesRegions(mutation, nodes, sub.regions); });
+        if (touched.length && isOwnChange(mutation, nodes)) return;
+      }
+      if (!touched.length) return;
+      touched.forEach(function (sub) { sub.dirty = true; });
+      changed = true;
+    });
+    return changed;
+  }
+
+  /**
+   * Run `callback` after LATS changes part of the page. LATS renders parts of its pages after
+   * load and again after some actions, from fresh HTML: it rebuilds the TDS header, rows, and
+   * footer after a sub-task change, and writes notices such as "Holiday - 11/11/2026" late.
+   * That drops LATS Go!'s decorations and leaves observers on the old nodes, so make callbacks
+   * safe to run again on any mix of new and decorated nodes.
+   *
+   * One observer on document.body, which LATS doesn't replace, serves every subscriber. A
+   * change counts for a subscriber when it happens inside one of its regions, or adds or removes
+   * a node that is or holds one. LATS Go!'s own changes don't count (isOwnMutation). The
+   * observer waits for a burst of changes to settle, and then runs the callbacks whose regions
+   * changed, in the order they subscribed: lats-restyle.js before content.js, as on page load.
+   *
+   * @param {string} regions A selector for the parts of the page to watch.
+   * @param {function()} callback
+   * @param {{tdsRowFields: boolean}} [options] `tdsRowFields` also counts a new value in a TDS
+   *   row's hidden fields (TDS_ROW_FIELDS), which LATS can update without touching anything else.
+   */
+  function onLatsChange(regions, callback, options) {
+    changeSubscribers.push({ regions: regions, callback: callback, tdsRowFields: !!(options && options.tdsRowFields), dirty: false });
+    if (changeObserver) return;
+    let timer = null;
+    let since = 0;
+    const run = function () {
+      timer = null;
+      changeSubscribers.forEach(function (sub) {
+        if (!sub.dirty) return;
+        sub.dirty = false;
+        // One failing callback shouldn't stop the rest. Report it without breaking the loop.
+        try { sub.callback(); } catch (error) { setTimeout(function () { throw error; }, 0); }
+      });
     };
-    return {
-      categoryCode: value('CategoryCode'),
-      categoryDescription: value('CategoryDescription'),
-      taskCode: value('TaskCode'),
-      taskDescription: value('TaskDescription'),
-      subTaskCode: value('SubTask_0__Name'),
-      subTaskDescription: value('SubTask_0__Description')
-    };
+    changeObserver = new MutationObserver(function (mutations) {
+      if (!markChangedSubscribers(mutations)) return;
+      const now = Date.now();
+      if (timer === null) since = now;
+      else clearTimeout(timer);
+      // Wait for LATS to finish, but not forever if it keeps changing the page.
+      timer = setTimeout(run, now - since >= 500 ? 0 : 80);
+    });
+    changeObserver.observe(document.body, {
+      childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['value']
+    });
   }
 
   return {
@@ -848,6 +1062,10 @@ const LatsGo = (function () {
     inferDate: inferDate,
     parseHeaderDate: parseHeaderDate,
     findStateHolidays: findStateHolidays,
+    pageHolidays: pageHolidays,
+    holidayCalendarUrl: holidayCalendarUrl,
+    formatList: formatList,
+    formatHolidayList: formatHolidayList,
     findTimesheetStatus: findTimesheetStatus,
     normalizeSpace: normalizeSpace,
     parseSubTaskLabel: parseSubTaskLabel,
@@ -858,6 +1076,8 @@ const LatsGo = (function () {
     el: el,
     setText: setText,
     setFlag: setFlag,
+    icon: icon,
+    alert: alert,
     numberIn: numberIn,
     isWeekendHeader: isWeekendHeader,
     isWeekendTitle: isWeekendTitle,
@@ -866,7 +1086,9 @@ const LatsGo = (function () {
     whenLatsReady: whenLatsReady,
     tdsFooterTables: tdsFooterTables,
     tdsDayCells: tdsDayCells,
-    readTdsRowFields: readTdsRowFields
+    readTdsRowFields: readTdsRowFields,
+    TDS_GRID: TDS_GRID,
+    onLatsChange: onLatsChange
   };
 })();
 

@@ -38,6 +38,8 @@ LATS Go! never submits a timesheet. Submitting requires your attestation, so it 
 
 LATS Go! finds LATS's "Holiday - MM/DD/YYYY" notices and skips those days. When you save, LATS adds the "HOL - State Holiday" row itself. Use the **Holiday leave (balance)** day type only to charge banked holiday leave.
 
+On the timesheet and TDS pages, LATS's holiday notices show as a **State holiday reminder**. It names the period's holidays and links to the Department of Civil Service holiday calendar for that year. On the timesheet, until LATS adds the HOL row, it also tells you that LATS adds 7.5 hours of HOL - State Holiday when you save.
+
 ### Your schedule
 
 Open the settings from the toolbar icon (**Edit schedule**) or from the Fill Timecard dialog. You can set the following:
@@ -65,11 +67,16 @@ LATS unlocks pay periods in order. When a period is locked, LATS Go! replaces Fi
 
 LATS Go! restyles the timesheet and TDS pages to match its own UI:
 
+- The Timesheet and TDS tabs come first in the tab bar, styled like the NY State Design System's tabs.
 - Day columns show the weekday over the date, weekends are muted, and state holidays are tagged.
-- A Total column shows each leave row's and totals row's period sum, with durations such as "7h 30m".
-- Empty leave rows collapse behind **Show empty leave rows**.
+- A Total column shows each hours row's and totals row's period sum, in LATS's decimal hours.
+- Rows with no hours on any day, such as unused leave types, hide behind **Empty rows**. The button shows how many rows it hides, and its tooltip names the first three.
+- The tables under the timesheet, such as Work Totals and Balances and Earnings, have a line under each row.
+- On the timesheet, LATS's warnings about missing time and unmatched TDS hours show as warning alerts.
 - Each TDS row shows its sub-task or task name over its codes, with the hours and a row total on the same line.
 - The timesheet status shows as a labeled pill.
+
+The styling and the TDS helpers stay in place when LATS redraws the TDS grid, such as after you change a sub-task.
 
 LATS Go! only adds elements around LATS's fields. It never renames, removes, or reorders them.
 
@@ -101,12 +108,12 @@ After you change code, reload the extension on `chrome://extensions/`, and then 
 
 | Path | Purpose |
 |---|---|
-| `scripts/shared/utils.js` | Shared logic on the `LatsGo` global: settings and migration, time math, partial-day leave, and page-text parsing. |
+| `scripts/shared/utils.js` | Shared logic on the `LatsGo` global: settings and migration, time math, partial-day leave, page-text parsing, and the helpers that build LATS Go!'s elements and watch LATS for changes. |
 | `scripts/content.js` | Timesheet and TDS pages: Fill Timecard, the locked-period note, and the TDS helpers. |
 | `scripts/lats-restyle.js` | Small additions to LATS's own pages that `styles/content.css` builds on. |
 | `scripts/page-bridge.js` | Runs in the page's main world to call LATS's jQuery, Kendo widgets, and dialogs. |
 | `scripts/options.js`, `scripts/popup.js` | Settings page and toolbar popup. |
-| `styles/ui.css` | One stylesheet for the popup, settings page, and Fill Timecard dialog, built on `styles/nysds-tokens.css`. |
+| `styles/ui.css` | One stylesheet for the popup, settings page, Fill Timecard dialog, and alerts, built on `styles/nysds-tokens.css`. |
 | `styles/content.css`, `styles/default.css` | Restyling for LATS's own pages. |
 | `tests/` | Vitest tests. `tests/fixtures/` holds synthetic LATS pages, not captures of real ones. |
 

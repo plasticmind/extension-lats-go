@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LATS Go!",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Makes the NY State LATS timesheet faster: fill your schedule, leave, and location in one step, and finish TDS with less math.",
   "minimum_chrome_version": "111",
   "permissions": [

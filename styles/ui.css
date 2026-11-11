@@ -14,6 +14,7 @@
 .lg {
   --lg-font-xs: 12px;
   --lg-font-sm: 14px;
+  --lg-font-md: 16px;
   --lg-font-lg: 18px;
   --lg-font-xl: 22px;
   --lg-font-2xl: 28px;
@@ -470,42 +471,103 @@
   color: var(--nys-color-text-weak);
 }
 
-/* ---------- Callouts ---------- */
+/* ---------- Alerts and callouts ----------
+   Alerts follow nys-alert from the NY State Design System: an accent on the left, a tinted
+   background, a 24px icon in the text color, and a semibold heading over regular text at
+   16px/24px. A type modifier (--info or --danger) sets the colors. Without one, an alert is
+   neutral, like nys-alert's base type.
+
+   .lg-alert holds an icon (.lg-alert__icon) and a body (.lg-alert__body), or plain content.
+   LatsGo.alert() builds the first kind. A callout (.lg-alert.lg-callout) adds an action
+   button beside its text. */
+
+.lg-alert {
+  --lg-alert-accent: var(--nys-color-neutral);
+  --lg-alert-background: var(--nys-color-neutral-weak);
+  margin: 0 0 var(--nys-space-150);
+  padding: var(--nys-space-250);
+  border: 0;
+  border-left: var(--nys-border-width-lg) solid var(--lg-alert-accent);
+  border-radius: var(--nys-radius-md);
+  background: var(--lg-alert-background);
+  color: var(--nys-color-text);
+  font-size: var(--lg-font-md);
+  line-height: var(--lg-line-height);
+}
+
+.lg-alert--info {
+  --lg-alert-accent: var(--nys-color-info);
+  --lg-alert-background: var(--nys-color-info-weak);
+}
+
+.lg-alert--danger {
+  --lg-alert-accent: var(--nys-color-danger);
+  --lg-alert-background: var(--nys-color-danger-weak);
+}
+
+.lg-alert:has(> .lg-alert__icon) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nys-space-150);
+}
 
 .lg-callout {
-  display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--nys-space-150) var(--nys-space-200);
-  margin: var(--nys-space-150) 0;
-  padding: var(--nys-space-150) var(--nys-space-200);
-  border: 1px solid var(--nys-color-info);
-  border-left-width: 4px;
-  border-radius: var(--nys-radius-md);
-  background: var(--nys-color-info-weak);
-  color: var(--nys-color-text);
+  margin: var(--nys-space-200) 0;
 }
 
-.lg-callout__icon {
+.lg-callout > .lg-button {
+  align-self: center;
+}
+
+.lg-alert__icon {
   flex: none;
-  width: 20px;
-  height: 20px;
-  color: var(--nys-color-info);
+  width: 24px;
+  height: 24px;
 }
 
-.lg-callout__body {
+.lg-alert__body {
+  display: flex;
   flex: 1 1 280px;
+  flex-direction: column;
+  gap: var(--nys-space-50);
   min-width: 0;
 }
 
-.lg-callout__title {
-  font-weight: var(--nys-font-weight-bold);
-  font-size: var(--lg-font-sm);
+.lg-alert__heading {
+  font-weight: var(--nys-font-weight-semibold);
 }
 
-.lg-callout__list {
-  margin: var(--nys-space-100) 0 0;
+.lg-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nys-space-150);
+}
+
+/* .lg raises these above LATS's Bootstrap a:hover rules. */
+.lg .lg-alert__link {
+  color: var(--nys-color-link);
+  font-weight: var(--nys-font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lg .lg-alert__link:hover {
+  color: var(--nys-color-link-strong);
+}
+
+.lg .lg-alert__link:active {
+  color: var(--nys-color-link-strongest);
+}
+
+.lg-alert ul {
+  margin: var(--nys-space-50) 0 0;
   padding-left: var(--nys-space-250);
+}
+
+/* The Copy rows results: smaller, and spaced by the body's gap instead of a margin. */
+.lg-alert .lg-callout__list {
+  margin-top: 0;
   font-size: var(--lg-font-xs);
 }
 
@@ -667,20 +729,6 @@ dialog.lg-dialog::backdrop {
   margin: 0;
   font-weight: var(--nys-font-weight-bold);
   font-variant-numeric: tabular-nums;
-}
-
-.lg-alert {
-  margin-bottom: var(--nys-space-150);
-  padding: var(--nys-space-100) var(--nys-space-150);
-  border-left: 4px solid var(--nys-color-danger);
-  border-radius: var(--nys-radius-md);
-  background: var(--nys-color-danger-weak);
-  font-size: var(--lg-font-sm);
-}
-
-.lg-alert ul {
-  margin: var(--nys-space-50) 0 0;
-  padding-left: var(--nys-space-250);
 }
 
 /* ---------- Fill Timecard week table (UI-2) ---------- */
